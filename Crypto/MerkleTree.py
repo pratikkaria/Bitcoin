@@ -13,7 +13,6 @@ print(verifyMerkleTree(newMerkleTree.mrkl_root))
 '''
 
 from utils import getHashValue, verifyMerkleTree
-from collections import OrderedDict
 from typing import List
 
 class MerkleTreeNode:
@@ -30,10 +29,19 @@ class MerkleTreeNode:
         else:
             self.hashValue = getHashValue(self.leftNode.hashValue, "" )
 
+    def __eq__(self, other: MerkleTreeNode) -> bool :
+        if other is None:
+            return false
+        return self.hashValue == other.hashValue
 
 class MerkleTree:
     def __init__(self):
         self.mrkl_root: MerkleTreeNode = None
+
+    def __eq__(self, other: MerkleTree) -> bool:
+        if other is None:
+            return False
+        return other.mrkl_root==self.mrkl_root
 
     def getTxnNodes(self, txnList: List[str]) -> List[MerkleTreeNode] :
         txnNodes = []
