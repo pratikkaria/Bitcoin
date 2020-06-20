@@ -31,7 +31,7 @@ class MerkleTreeNode:
 
     def __eq__(self, other: MerkleTreeNode) -> bool :
         if other is None:
-            return false
+            return False
         return self.hashValue == other.hashValue
 
 class MerkleTree:

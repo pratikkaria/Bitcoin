@@ -2,6 +2,7 @@ from collections import deque
 import utils
 from Crypto.PublicKey import RSA
 from constants import opcodeList
+from typing import List
 
 def createPubKeyScript(pubKeyHash: str) -> str:
     return "OP_DUP\tOP_HASH160\t"+pubKeyHash+"\tOP_EQUALVERIFY\tOP_CHECKSIG"

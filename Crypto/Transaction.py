@@ -1,5 +1,7 @@
 import ScriptEngine
 from Crypto.PublicKey import RSA
+import utils
+from typing import List
 
 class TransactionInput:
     def __init__(self,prevTxn, prevIndex):
@@ -71,5 +73,13 @@ class Transaction:
 
 
     def calculateHash(self):
-        rawData = getRawDataToHash()
+        rawData = self.getRawDataToHash()
         self.hash = utils.getHashValue(rawData,"")
+
+    def getHash(self):
+        if self.hash == "":
+            self.calculateHash()
+        return self.hash
+
+    def validate(self) -> bool:
+        # validate transaction
