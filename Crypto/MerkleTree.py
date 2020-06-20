@@ -37,6 +37,7 @@ class MerkleTreeNode:
 class MerkleTree:
     def __init__(self):
         self.mrkl_root: MerkleTreeNode = None
+        self.fullTree: List[MerkleTreeNode] = []
 
     def __eq__(self, other: MerkleTree) -> bool:
         if other is None:
@@ -69,8 +70,11 @@ class MerkleTree:
 
     def createMerkleTree(self, txnList: List[str]):
         txnNodes: List[MerkleTreeNode] = self.getTxnNodes(txnList)
+        self.fullTree.extend(txnNodes)
         newLevel: List[MerkleTreeNode] = self.get_new_level(txnNodes)
+        self.fullTree.extend(newLevel)
         while len(newLevel)>1:
             newLevel = self.get_new_level(newLevel)
+            self.fullTree.extend(newLevel)
 
         self.mrkl_root = newLevel[0]
