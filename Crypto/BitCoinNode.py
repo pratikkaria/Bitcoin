@@ -16,7 +16,7 @@ class BitCoinNode:
                 newTx = self.txQueue.get_nowait()
                 newTxHash = newTx.getHash()
                 newTxRawData = newTx.getRawDataToHash()
-                
+
                 if newTx.validate():
                     self.unspntTxOut[newTxHash] = newTx
             except:

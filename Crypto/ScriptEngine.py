@@ -3,6 +3,7 @@ import utils
 from Crypto.PublicKey import RSA
 from constants import opcodeList
 from typing import List
+from constants import hashSize
 
 def createPubKeyScript(pubKeyHash: str) -> str:
     return "OP_DUP\tOP_HASH160\t"+pubKeyHash+"\tOP_EQUALVERIFY\tOP_CHECKSIG"
@@ -25,7 +26,7 @@ def verifyScriptSig(scriptSig: str, msg: str) -> bool:
                 stack.append(popped)
             elif params[i]=="OP_HASH160":
                 popped = stack.pop()
-                reqHash:str = utils.getHashValue(popped, "")
+                reqHash:str = utils.getHashValue(popped, hashSize)
                 stack.append(reqHash)
             elif params[i]=="OP_EQUALVERIFY":
                 first:str = stack.pop()

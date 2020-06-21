@@ -1,44 +1,45 @@
 '''
 Usage:
 1) To Create
-merkle_tree = MerkleTree(arity)
+merkle_tree = MerkleTree()
 merkle_tree.createMerkleTree(<List of Transactions(str now)>)
 2) To Verify
 verifyMerkleTree(merkle_tree.mrkl_root)
 
 
-EG)newMerkleTree = MerkleTree(2)
+EG)newMerkleTree = MerkleTree()
 newMerkleTree.createMerkleTree(["a","b","c","d","e","f"])
 print(verifyMerkleTree(newMerkleTree.mrkl_root))
 '''
 
 from utils import getHashValue, verifyMerkleTree
 from typing import List
-from constants import hashSize
 
 class MerkleTreeNode:
     def __init__(self,value = ""):
         self.hashValue: str = ""
-        self.nodeList = []
+        self.leftNode: MerkleTreeNode = None
+        self.rightNode: MerkleTreeNode = None
 
-    def calculate(self, nodeList):
-        self.nodeList = nodeList
-        for i in nodeList:
-            self.hashValue += i.hashValue
-        self.hashValue = getHashValue(self.hashValue, hashSize)
+    def calculate(self, leftNode, rightNode):
+        self.leftNode = leftNode
+        self.rightNode = rightNode
+        if len(self.rightNode.hashValue)>0:
+            self.hashValue = getHashValue(self.leftNode.hashValue, self.rightNode.hashValue)
+        else:
+            self.hashValue = getHashValue(self.leftNode.hashValue, "" )
 
-    def __eq__(self, other) -> bool :
+    def __eq__(self, other: MerkleTreeNode) -> bool :
         if other is None:
             return False
         return self.hashValue == other.hashValue
 
 class MerkleTree:
-    def __init__(self, arity: int = 2):
-        self.mrkl_root: MerkleTreeNode = MerkleTreeNode()
+    def __init__(self):
+        self.mrkl_root: MerkleTreeNode = None
         self.fullTree: List[MerkleTreeNode] = []
-        self.arity = arity
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: MerkleTree) -> bool:
         if other is None:
             return False
         return other.mrkl_root==self.mrkl_root
@@ -54,15 +55,16 @@ class MerkleTree:
         index: int = 0
         newLevel: List[MerkleTreeNode] = []
         while index<len(txnNodes):
-            nodeList = []
-            for i in range(self.arity):
-                if index>=len(txnNodes):
-                    break
-                nodeList.append(txnNodes[index])
-                index+=1
+            leftNode: MerkleTreeNode = txnNodes[index]
+            index+=1
+            rightNode: MerkleTreeNode = MerkleTreeNode()
+            if index!=len(txnNodes):
+                rightNode = txnNodes[index]
+
             newTempNode: MerkleTreeNode = MerkleTreeNode()
-            newTempNode.calculate(nodeList)
+            newTempNode.calculate(leftNode,rightNode)
             newLevel.append(newTempNode)
+            index+=1
 
         return newLevel
 
@@ -76,8 +78,3 @@ class MerkleTree:
             self.fullTree.extend(newLevel)
 
         self.mrkl_root = newLevel[0]
-
-
-merkle_tree = MerkleTree(5)
-merkle_tree.createMerkleTree(["a","b","c","d","e","f","g"])
-print(verifyMerkleTree(merkle_tree.mrkl_root))

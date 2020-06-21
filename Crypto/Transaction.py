@@ -2,6 +2,7 @@ import ScriptEngine
 from Crypto.PublicKey import RSA
 import utils
 from typing import List
+from constants import hashSize
 
 class TransactionInput:
     def __init__(self,prevTxn, prevIndex):
@@ -44,7 +45,7 @@ class TransactionOutput:
         return '{}:{}'.format(self.amount, self.script_pubkey)
 
     def createScriptPubKey(self, publicKeyOfReceiver:str):
-        self.scriptPubKey = ScriptEngine.createPubKeyScript(utils.getHashValue(publicKeyOfReceiver,""))
+        self.scriptPubKey = ScriptEngine.createPubKeyScript(utils.getHashValue(publicKeyOfReceiver,hashSize))
 
 
 class Transaction:
@@ -74,7 +75,7 @@ class Transaction:
 
     def calculateHash(self):
         rawData = self.getRawDataToHash()
-        self.hash = utils.getHashValue(rawData,"")
+        self.hash = utils.getHashValue(rawData,hashSize)
 
     def getHash(self):
         if self.hash == "":
