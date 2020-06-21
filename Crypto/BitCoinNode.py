@@ -10,11 +10,13 @@ class BitCoinNode:
         self.txQueue = txQueue
         self.blkQueue = blkQueue
 
-    def startRunning(self):
+    def startRunning(self) -> None:
         while(True):
             try:
                 newTx = self.txQueue.get_nowait()
                 newTxHash = newTx.getHash()
+                newTxRawData = newTx.getRawDataToHash()
+                
                 if newTx.validate():
                     self.unspntTxOut[newTxHash] = newTx
             except:
@@ -37,7 +39,7 @@ class BitCoinNode:
 
     def createBlock(self):
         nop
-        
+
     def broadcastBlock(self):
         nop
 

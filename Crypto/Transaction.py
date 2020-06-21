@@ -80,6 +80,3 @@ class Transaction:
         if self.hash == "":
             self.calculateHash()
         return self.hash
-
-    def validate(self) -> bool:
-        # validate transaction

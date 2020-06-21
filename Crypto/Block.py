@@ -2,6 +2,9 @@ from CryptoGen import Cryptographic
 from Crypto.Hash import SHA256
 from typing import Tuple, List
 from constants import coinbase
+from MerkelTree import MerkleTreeNode
+from Transaction import Transaction
+import utils
 
 class BlockHeader:
     def __init__(self, prevBlockHash: str, nonce: str, mrkl_root: MerkleTreeNode,numberOfTransactions: int):
