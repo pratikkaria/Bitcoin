@@ -14,16 +14,17 @@ def verifyScriptSig(scriptSig: str, msg: str) -> bool:
     stack: deque = deque()
     params: List[str] = scriptSig.split("\t")
     stack.append(params[0])
+    popped: str = ""
     for i in range(1,len(params)):
         if params[i] not in opcodeList:
             stack.append(params[i])
         else:
             if params[i]=="OP_DUP":
-                popped:str = stack.pop()
+                popped = stack.pop()
                 stack.append(popped)
                 stack.append(popped)
             elif params[i]=="OP_HASH160":
-                popped:str = stack.pop()
+                popped = stack.pop()
                 reqHash:str = utils.getHashValue(popped, "")
                 stack.append(reqHash)
             elif params[i]=="OP_EQUALVERIFY":

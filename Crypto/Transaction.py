@@ -13,12 +13,12 @@ class TransactionInput:
         return '{}:{}'.format(self.prevTxn.hex(),self.prevIndex)
 
 
-    def createDataToSign(self, prevPubKeyScript: str, myPublicKey: str):
+    def createDataToSign(self, prevPubKeyScript: str, myPublicKey: str, txnOutputs: List[TransactionOutput]):
         inp = self #First Create TxnInp and txnOutputs
         dataToSign = ""
         dataToSign += inp.prevTxn
         dataToSign += str(inp.prevIndex)
-        for i in self.txnOutputs:
+        for i in txnOutputs:
             dataToSign += str(i.amount)
             dataToSign += i.scriptPubKey
 
@@ -29,8 +29,8 @@ class TransactionInput:
         return utils.sign(privateKey, dataToSign)
 
 
-    def createScriptSig(self, prevPubKeyScript: str, myPublicKey: str, myPrivateKey: str):
-        dataToSign = self.createDataToSign(prevPubKeyScript, myPublicKey)
+    def createScriptSig(self, prevPubKeyScript: str, myPublicKey: str, myPrivateKey: str, txnOutputs: List[TransactionOutput]):
+        dataToSign = self.createDataToSign(prevPubKeyScript, myPublicKey, txnOutputs)
         signature = self.createSignature(dataToSign, RSA.importKey(myPrivateKey))
         self.scriptSig = ScriptEngine.createScriptSig(prevPubKeyScript, myPublicKey, signature)
 
@@ -44,7 +44,7 @@ class TransactionOutput:
         return '{}:{}'.format(self.amount, self.script_pubkey)
 
     def createScriptPubKey(self, publicKeyOfReceiver:str):
-        self.scriptPubKey = ScriptEngine.createPubKeyScript(utils.getHash(publicKeyOfReceiver,""))
+        self.scriptPubKey = ScriptEngine.createPubKeyScript(utils.getHashValue(publicKeyOfReceiver,""))
 
 
 class Transaction:
