@@ -15,7 +15,7 @@ print(verifyMerkleTree(newMerkleTree.mrkl_root))
 from utils import getHashValue, verifyMerkleTree
 from typing import List
 from constants import hashSize
-
+from Transaction import Transaction,TransactionInput,TransactionOutput
 class MerkleTreeNode:
     def __init__(self,value = ""):
         self.hashValue: str = ""
@@ -43,10 +43,10 @@ class MerkleTree:
             return False
         return other.mrkl_root==self.mrkl_root
 
-    def getTxnNodes(self, txnList: List[str]) -> List[MerkleTreeNode] :
+    def getTxnNodes(self, txnList: List[Transaction]) -> List[MerkleTreeNode] :
         txnNodes = []
         for i in txnList:
-            txnNodes.append(MerkleTreeNode(i))
+            txnNodes.append(MerkleTreeNode(i.hash))
 
         return txnNodes
 
@@ -66,7 +66,7 @@ class MerkleTree:
 
         return newLevel
 
-    def createMerkleTree(self, txnList: List[str]):
+    def createMerkleTree(self, txnList: List[Transaction]):
         txnNodes: List[MerkleTreeNode] = self.getTxnNodes(txnList)
         self.fullTree.extend(txnNodes)
         newLevel: List[MerkleTreeNode] = self.get_new_level(txnNodes)
@@ -79,5 +79,5 @@ class MerkleTree:
 
 
 merkle_tree = MerkleTree(5)
-merkle_tree.createMerkleTree(["a","b","c","d","e","f","g"])
+# merkle_tree.createMerkleTree(["a","b","c","d","e","f","g"])
 print(verifyMerkleTree(merkle_tree.mrkl_root))
