@@ -17,8 +17,8 @@ from typing import List
 from constants import hashSize
 from Transaction import Transaction,TransactionInput,TransactionOutput
 class MerkleTreeNode:
-    def __init__(self,value = ""):
-        self.hashValue: str = ""
+    def __init__(self,value = "") -> None:
+        self.hashValue: str = value
         self.nodeList = []
 
     def calculate(self, nodeList):
@@ -33,7 +33,7 @@ class MerkleTreeNode:
         return self.hashValue == other.hashValue
 
 class MerkleTree:
-    def __init__(self, arity: int = 2):
+    def __init__(self, arity: int = 2) -> None:
         self.mrkl_root: MerkleTreeNode = MerkleTreeNode()
         self.fullTree: List[MerkleTreeNode] = []
         self.arity = arity

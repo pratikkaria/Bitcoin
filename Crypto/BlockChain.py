@@ -1,8 +1,8 @@
 from Block import Block
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 class BlockChain:
-    def __init__(self):
+    def __init__(self) -> None:
         self.headMap: Dict[str, BlockNode] = {} # map from a head block hash to the blocknode
         self.longest: str = "" # longest chain-head hash
         self.blockMap: Dict[str, BlockNode] = {} # map from all block hashes to the blocknode
@@ -36,10 +36,10 @@ class BlockChain:
 
 # unit of node used inside blockchain implemented as linked list
 class BlockNode:
-    def __init__(self, block: Block, prevBlk = None):
+    def __init__(self, block: Block, prevBlk: Optional[BlockNode] = None) -> None:
         self.block = block
         self.prevBlk = prevBlk
         if (self.prevBlk == None):
-            self.len = 1
+            self.len: int = 1
         else:
             self.len = self.prevBlk.len + 1

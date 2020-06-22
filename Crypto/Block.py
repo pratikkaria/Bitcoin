@@ -28,3 +28,6 @@ class Block:
         self.blockHeader: BlockHeader = blockHeader
         self.merkleTree: List[MerkleTreeNode] = fullMerkleTree
         self.hash: str = utils.getHashValue(blockHeader.getRawDataToHash(),hashSize)
+
+    def reCalculateHash(self) -> None:
+        self.hash: str = utils.getHashValue(self.blockHeader.getRawDataToHash(),hashSize)

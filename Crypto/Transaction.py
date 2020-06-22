@@ -5,10 +5,11 @@ from typing import List
 from constants import hashSize
 
 class TransactionInput:
-    def __init__(self,prevTxn, prevIndex):
-        self.prevTxn = prevTxn
-        self.prevIndex = prevIndex
-        self.scriptSig = ""
+    def __init__(self, prevTxn: str, prevIndex: str) -> None:
+        self.prevTxn: str = prevTxn
+        self.prevIndex: str = prevIndex
+        self.scriptSig: str = ""
+        self.dataToSign: str = ""
 
     def __repr__(self):
         return '{}:{}'.format(self.prevTxn.hex(),self.prevIndex)
@@ -22,7 +23,7 @@ class TransactionInput:
         for i in txnOutputs:
             dataToSign += str(i.amount)
             dataToSign += i.scriptPubKey
-
+        self.dataToSign = dataToSign
         return dataToSign
 
 
