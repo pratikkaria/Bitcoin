@@ -11,20 +11,22 @@ import utils, constants
 
 class BitCoinNode:
     id: int = 0
-    def __init__(self, blockchain: BlockChain = BlockChain(), unspntTxOut: Dict[str, Transaction] = {}, txQueue: Queue = Queue(), blkQueue: Queue = Queue()) -> None:
+    def __init__(self, blockchain: BlockChain = BlockChain(), mempool: Dict[str, Transaction] = {}, unspntTxOut: Dict[str, TransactionOutput] = {}, txQueue: Queue = Queue(), blkQueue: Queue = Queue()) -> None:
         self.blockchain: BlockChain = blockchain
-        self.unspntTxOut: Dict[str, Transaction] = unspntTxOut
+        self.mempool: Dict[str, Transaction] = mempool # unconfirmed transactions
+        self.unspntTxOut: Dict[str, TransactionOutput] = unspntTxOut # confirmed but unspent transactions outputs
         self.txQueue: Queue = txQueue
         self.blkQueue: Queue = blkQueue
-        self.blkThreshold: int = 5
+        self.blkThreshold: int = 500
         self.txnThreshold: int = 5
         self.generatedTxns: List[Transaction] = []
         self.nodesList: List[BitCoinNode] = []
         BitCoinNode.id += 1
         self.id: int = BitCoinNode.id
         self.target: str = "0000000000000000007e9e4c586439b0cdbe13b1370bdd9435d76a644d047523"
-        self.pubKey: str = ""
-        self.privateKey: str = ""
+        self.pubKeys: List[str] = []
+        self.privateKeys: List[str] = []
+        self.balance: int = 0
 
     def processBlks(self) -> None:
         blkCnt = 0
@@ -34,7 +36,10 @@ class BitCoinNode:
                 newBlk: Block = self.blkQueue.get_nowait()
                 # TODO: check and remove those transactions from UTXO which are present in this block
                 # TODO: verify this block
-                self.blockchain.insert(newBlk)
+                (result, mempool, unspntTxOut) = self.blockchain.insert(newBlk, self.mempool, self.unspntTxOut)
+                if result:
+                    self.mempool = mempool
+                    self.unspntTxOut = unspntTxOut
                 blkCnt += 1
             except:
                 # empty blkQueue - ignore
@@ -106,7 +111,7 @@ class BitCoinNode:
     def startRunning(self) -> None:
         while(True):
             # wait for some time
-            time.sleep(random.randint(1, 3))
+            # time.sleep(random.randint(1, 3))
             # process received blocks from queue
             self.processBlks()
             # process received transactions from queue
