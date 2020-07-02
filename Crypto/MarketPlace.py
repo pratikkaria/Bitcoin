@@ -13,5 +13,3 @@ class Buyer:
 class Contract:
     def __init__(self, state: str):
         self.state = "Available"
-
-    def
