@@ -2,6 +2,7 @@ from Block import Block
 from typing import Dict, List, Optional, Tuple
 from Transaction import Transaction, TransactionOutput
 import copy
+from constants import BlockStatus
 
 class BlockChain:
     def __init__(self) -> None:
@@ -14,7 +15,7 @@ class BlockChain:
         self.blockStates: Dict[str, Tuple[Dict[str, Transaction], Dict[str, List[TransactionOutput]]]] = {}
 
     # insert a new block into blockchain, return True (if all ok) return False (if block rejected)
-    def insert(self, block: Block) -> bool:
+    def insert(self, block: Block) -> Tuple[bool, BlockStatus]:
         # if this is Genesis Block
         if block.blockHeader.prevBlock is "":
             newBlkNode = BlockNode(block)
@@ -35,7 +36,7 @@ class BlockChain:
                 for txn in block.txnList:
                     if txn.getHash() not in self.blockStates[block.blockHeader.prevBlock][0]:
                         # invalid transaction; reject the block
-                        return False
+                        return (False, BlockStatus.MISSING_TXN)
                 # update the mempool and unspntTxOut structures for the new block
                 self.blockStates[block.hash] = (copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][0]), copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][1]))
                 for txn in block.txnList:
@@ -44,7 +45,7 @@ class BlockChain:
                         self.blockStates[block.hash][0].pop(txn.getHash())
                     else:
                         # invalid path; impossible to come here
-                        return False
+                        return (False, BlockStatus.REJECTED)
                 # add the new block to blockMap and headMap
                 newBlkNode = BlockNode(block, self.blockMap[block.blockHeader.prevBlock])
                 self.blockMap[block.hash] = newBlkNode
@@ -59,15 +60,16 @@ class BlockChain:
             # prevblock absent in the blockchain
             else:
                 # invalid block; reject it
-                return False
-        return True
+                return (False, BlockStatus.MISSING_PREV_BLOCK)
+        return (True, BlockStatus.VALID)
 
 # unit of node used inside blockchain implemented as linked list
 class BlockNode:
     def __init__(self, block: Block, prevBlk: Optional[BlockNode] = None) -> None:
         self.block = block
-        self.prevBlk = prevBlk
-        if (self.prevBlk == None):
+        if (prevBlk is None):
+            self.prevBlk = None
             self.len: int = 1
         else:
+            self.prevBlk = prevBlk
             self.len = self.prevBlk.len + 1

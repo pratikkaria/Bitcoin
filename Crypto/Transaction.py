@@ -74,11 +74,11 @@ class Transaction:
         return dataToHash
 
 
-    def calculateHash(self):
+    def calculateHash(self) -> None:
         rawData = self.getRawDataToHash()
         self.hash = utils.getHashValue(rawData,hashSize)
 
-    def getHash(self):
+    def getHash(self) -> str:
         if self.hash == "":
             self.calculateHash()
         return self.hash
