@@ -27,27 +27,30 @@ class BitCoinNode:
         self.privateKeys: List[str] = []
         # TODO: simulate an account balance
         self.balance: int = 0
+        self.createGenesisBlock()
+
+    def processBlk(self, blkCnt: int, emptyExcptn: bool) -> None:
+        try:
+            newBlk: Block = self.blkQueue.get_nowait()
+            # before inserting, block verification is done inside the BlockChain.insert() method
+            (result, status) = self.blockchain.insert(newBlk)
+            if not result and status is BlockStatus.MISSING_TXN:
+                # Not reliable to get the size of queue
+                currentQueueSize = self.txQueue.qsize()
+                self.processTxns(currentQueueSize)
+                # Last try - if still we get MISSING_TXN, we have to reject this block
+                (result, status) = self.blockchain.insert(newBlk)
+                if result:
+                    blkCnt += 1
+        except:
+            # empty blkQueue - ignore
+            emptyExcptn = True
 
     def processBlks(self) -> int:
         blkCnt: int = 0
         emptyExcptn = False
         while (emptyExcptn == False and blkCnt < self.blkThreshold):
-            try:
-                newBlk: Block = self.blkQueue.get_nowait()
-                # before inserting, block verification is done inside the BlockChain.insert() method
-                (result, status) = self.blockchain.insert(newBlk)
-                if not result and status is BlockStatus.MISSING_TXN:
-                    # Not reliable to get the size of queue
-                    currentQueueSize = self.txQueue.qsize()
-                    self.processTxns(currentQueueSize)
-                    # Last try - if still we get MISSING_TXN, we have to reject this block
-                    (result, status) = self.blockchain.insert(newBlk)
-                    if result:
-                        blkCnt += 1
-            except:
-                # empty blkQueue - ignore
-                emptyExcptn = True
-                pass
+            self.processBlk(blkCnt, emptyExcptn)
         return blkCnt
 
     def processTxns(self, threshold = Threshold.TXN_THRESHOLD) -> None:
@@ -116,6 +119,10 @@ class BitCoinNode:
         newBlk: Block = Block(txnList, blkHeader, newMerkleTree.fullTree)
         return newBlk
 
+    def addGenesisBlock(self, block: Block) -> None:
+        (result, status) = self.blockchain.insert(block)
+        assert result == True
+
     def proofOfWork(self) -> Block:
         restart = True
         newBlk: Block
@@ -138,6 +145,9 @@ class BitCoinNode:
         for node in self.nodesList:
             if node.id != self.id:
                 node.blkQueue.put(newBlk)
+        # once we are sure about the newly mined block, add it into our own blockchain, as we broadcast it to other nodes
+        (result, status) = self.blockchain.insert(newBlk)
+        assert result == True
 
     def startRunning(self) -> None:
         while(True):
