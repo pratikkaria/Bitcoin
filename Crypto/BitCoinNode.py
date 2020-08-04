@@ -7,18 +7,17 @@ from Block import Block, BlockHeader
 import ScriptEngine as ScrEng
 from MerkleTree import MerkleTree
 import binascii
-import utils, constants
+from constants import BlockStatus, coinbase, Threshold
+import utils
 
 class BitCoinNode:
     id: int = 0
-    def __init__(self, blockchain: BlockChain = BlockChain(), mempool: Dict[str, Transaction] = {}, unspntTxOut: Dict[str, TransactionOutput] = {}, txQueue: Queue = Queue(), blkQueue: Queue = Queue()) -> None:
+    def __init__(self, blockchain: BlockChain = BlockChain(), txQueue: Queue = Queue(), blkQueue: Queue = Queue()) -> None:
         self.blockchain: BlockChain = blockchain
-        self.mempool: Dict[str, Transaction] = mempool # unconfirmed transactions
-        self.unspntTxOut: Dict[str, TransactionOutput] = unspntTxOut # confirmed but unspent transactions outputs
         self.txQueue: Queue = txQueue
         self.blkQueue: Queue = blkQueue
-        self.blkThreshold: int = 500
-        self.txnThreshold: int = 5
+        self.blkThreshold: Threshold = Threshold.BLK_THRESHOLD
+        self.txnThreshold: Threshold = Threshold.TXN_THRESHOLD
         self.generatedTxns: List[Transaction] = []
         self.nodesList: List[BitCoinNode] = []
         BitCoinNode.id += 1
@@ -26,66 +25,88 @@ class BitCoinNode:
         self.target: str = "0000000000000000007e9e4c586439b0cdbe13b1370bdd9435d76a644d047523"
         self.pubKeys: List[str] = []
         self.privateKeys: List[str] = []
+        # TODO: simulate an account balance
         self.balance: int = 0
 
-    def processBlks(self) -> None:
-        blkCnt = 0
+    def processBlks(self) -> int:
+        blkCnt: int = 0
         emptyExcptn = False
         while (emptyExcptn == False and blkCnt < self.blkThreshold):
             try:
                 newBlk: Block = self.blkQueue.get_nowait()
-                # TODO: check and remove those transactions from UTXO which are present in this block
-                # TODO: verify this block
-                (result, mempool, unspntTxOut) = self.blockchain.insert(newBlk, self.mempool, self.unspntTxOut)
-                if result:
-                    self.mempool = mempool
-                    self.unspntTxOut = unspntTxOut
-                blkCnt += 1
+                # before inserting, block verification is done inside the BlockChain.insert() method
+                (result, status) = self.blockchain.insert(newBlk)
+                if not result and status is BlockStatus.MISSING_TXN:
+                    # Not reliable to get the size of queue
+                    currentQueueSize = self.txQueue.qsize()
+                    self.processTxns(currentQueueSize)
+                    # Last try - if still we get MISSING_TXN, we have to reject this block
+                    (result, status) = self.blockchain.insert(newBlk)
+                    if result:
+                        blkCnt += 1
             except:
                 # empty blkQueue - ignore
                 emptyExcptn = True
                 pass
+        return blkCnt
 
-    def processTxns(self) -> None:
-        txnCnt = 0
+    def processTxns(self, threshold = Threshold.TXN_THRESHOLD) -> None:
+        txnCnt: int = 0
         emptyExcptn = False
-        while (emptyExcptn == False and txnCnt < self.txnThreshold):
+        while (emptyExcptn == False and txnCnt < threshold):
             try:
                 newTx: Transaction = self.txQueue.get_nowait()
                 newTxHash = newTx.getHash()
-                # verify this transaction
+                # Verify this transaction
                 verified = True
                 for newTxIn in newTx.txnInputs:
-                    if not (newTxIn.prevTxn in self.unspntTxOut):
+                    if not ((newTxIn.prevTxn in self.blockchain.mempool) or (newTxIn.prevTxn in self.blockchain.unspntTxOut)):
                         verified = False
+                        break
                     if not ScrEng.verifyScriptSig(newTxIn.scriptSig, newTxIn.dataToSign, newTx.txnOutputs):
                         verified = False
                         break
                 if verified:
-                    self.unspntTxOut[newTxHash] = newTx
-                txnCnt += 1
+                    #self.unspntTxOut[newTxHash] = newTx
+                    self.mempool[newTxHash] = newTx
+                    txnCnt += 1
             except:
                 # empty txQueue - ignore
                 emptyExcptn = True
                 pass
+        # give an opportunity to broadcast generated transactions
+        self.broadcastTxns()
 
-    def broadcastTxn(self) -> None:
-        txn: Transaction = self.generatedTxns.pop()
-        for node in self.nodesList:
-            if node.id != self.id:
-                node.txQueue.put(txn)
+    def broadcastTxns(self) -> None:
+        txn: Transaction
+        skip: bool = False
+        for txn in self.generatedTxns:
+            # Check if the current transaction's inputs have the corresponding outputs available
+            skip = False
+            for txIn in txn.txnInputs:
+                if not (txIn.prevTxn in self.unspntTxOut or txIn.prevTxn in self.mempool):
+                    skip = True
+                    break;
+            if skip is False:
+                # now broadcast this transaction to all the other BitCoinNodes
+                node: BitCoinNode
+                for node in self.nodesList:
+                    if node.id != self.id:
+                        node.txQueue.put(txn)
+            pass
         pass
 
     def createCoinBaseTxn(self) -> Transaction:
         txnInput = TransactionInput(binascii.hexlify(bytearray(32)), "ffffffff")
-        txnOutput = TransactionOutput(constants.coinbase)
+        txnOutput = TransactionOutput(coinbase)
         txnOutput.createScriptPubKey(self.pubKey)
         txn = Transaction([txnInput], [txnOutput], 15)
         return txn
 
     def createBlock(self) -> Block:
-        txnList = list(self.unspntTxOut.values())
-        self.unspntTxOut.clear()
+        # Check - whether it should be copied, moved or destroyed
+        txnList = self.blockchain.mempool
+        #self.blockchain.mempool.clear()
         coinBaseTxn = self.createCoinBaseTxn()
         txnList.insert(0, coinBaseTxn)
         newMerkleTree = MerkleTree()
@@ -96,14 +117,24 @@ class BitCoinNode:
         return newBlk
 
     def proofOfWork(self) -> Block:
-        newBlk: Block = self.createBlock()
-        while (newBlk.hash >= self.target):
-            nonce = random.randint(0, 2147483647)
-            newBlk.blockHeader.nonce = nonce
-            newBlk.reCalculateHash()
+        restart = True
+        newBlk: Block
+        while restart is True:
+            restart = False
+            newBlk = self.createBlock()
+            while (newBlk.hash >= self.target):
+                nonce = random.randint(0, 2147483647)
+                newBlk.blockHeader.nonce = nonce
+                newBlk.reCalculateHash()
+                # Keep processing the newly arrived blocks
+                count = self.processBlks()
+                if count > 0:
+                    restart = True
+                    break
         return newBlk
 
     def broadcastBlock(self, newBlk: Block) -> None:
+        node: BitCoinNode
         for node in self.nodesList:
             if node.id != self.id:
                 node.blkQueue.put(newBlk)
@@ -112,12 +143,12 @@ class BitCoinNode:
         while(True):
             # wait for some time
             # time.sleep(random.randint(1, 3))
-            # process received blocks from queue
-            self.processBlks()
+            # broadcast transaction(s)
+            self.broadcastTxns()
             # process received transactions from queue
             self.processTxns()
-            # broadcast a transaction at a time
-            self.broadcastTxn()
+            # process received blocks from queue
+            self.processBlks()
             # start mining for a block
             newBlk = self.proofOfWork()
             # broadbast block to all other nodes
