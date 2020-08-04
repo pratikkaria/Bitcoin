@@ -25,21 +25,19 @@ class BitCoinNode:
         self.target: str = "0000000000000000007e9e4c586439b0cdbe13b1370bdd9435d76a644d047523"
         self.pubKeys: List[str] = []
         self.privateKeys: List[str] = []
-        # TODO: simulate an account balance
-        self.balance: int = 0
-        self.createGenesisBlock()
+        self.addGenesisBlock()
 
     def processBlk(self, blkCnt: int, emptyExcptn: bool) -> None:
         try:
             newBlk: Block = self.blkQueue.get_nowait()
             # before inserting, block verification is done inside the BlockChain.insert() method
-            (result, status) = self.blockchain.insert(newBlk)
+            (result, status) = self.blockchain.insert(newBlk, self.pubKeys[0])
             if not result and status is BlockStatus.MISSING_TXN:
                 # Not reliable to get the size of queue
                 currentQueueSize = self.txQueue.qsize()
                 self.processTxns(currentQueueSize)
                 # Last try - if still we get MISSING_TXN, we have to reject this block
-                (result, status) = self.blockchain.insert(newBlk)
+                (result, status) = self.blockchain.insert(newBlk, self.pubKeys[0])
                 if result:
                     blkCnt += 1
         except:
@@ -120,7 +118,7 @@ class BitCoinNode:
         return newBlk
 
     def addGenesisBlock(self, block: Block) -> None:
-        (result, status) = self.blockchain.insert(block)
+        (result, status) = self.blockchain.insert(block, self.pubKeys[0])
         assert result == True
 
     def proofOfWork(self) -> Block:
@@ -146,7 +144,7 @@ class BitCoinNode:
             if node.id != self.id:
                 node.blkQueue.put(newBlk)
         # once we are sure about the newly mined block, add it into our own blockchain, as we broadcast it to other nodes
-        (result, status) = self.blockchain.insert(newBlk)
+        (result, status) = self.blockchain.insert(newBlk, self.pubKeys[0])
         assert result == True
 
     def startRunning(self) -> None:

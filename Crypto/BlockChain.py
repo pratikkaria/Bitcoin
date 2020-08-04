@@ -13,9 +13,11 @@ class BlockChain:
         self.blockMap: Dict[str, BlockNode] = {} # map from all block hashes to the blocknode
         # blockstates is a Dict[blockHash, (mempool, unspntTxOut)]
         self.blockStates: Dict[str, Tuple[Dict[str, Transaction], Dict[str, List[TransactionOutput]]]] = {}
+        self.blockBalance: Dict[str, int] = {} # map from all block hashes to the corresponding wallet balance
+        self.currentBalance: int = 0
 
     # insert a new block into blockchain, return True (if all ok) return False (if block rejected)
-    def insert(self, block: Block) -> Tuple[bool, BlockStatus]:
+    def insert(self, block: Block, pubKey: str) -> Tuple[bool, BlockStatus]:
         # if this is Genesis Block
         if block.blockHeader.prevBlock is "":
             newBlkNode = BlockNode(block)
@@ -23,8 +25,14 @@ class BlockChain:
             self.headMap[block.hash] = newBlkNode
             self.longest = block.hash
             unspntTxOut = {}
+            balance: int = 0
             for txn in block.txnList:
                 unspntTxOut[txn.getHash()] = txn.txnOutputs
+                for txnOut in txn.txnOutputs:
+                    if txnOut.scriptPubKey is pubKey:
+                        balance += txnOut.amount
+            self.blockBalance[block.hash] = balance
+            self.currentBalance = balance
             self.blockStates[block.hash] = ({}, unspntTxOut)
             self.mempool = self.blockStates[self.longest][0]
             self.unspntTxOut = self.blockStates[self.longest][1]
@@ -57,6 +65,15 @@ class BlockChain:
                         self.mempool = self.blockStates[self.longest][0]
                         self.unspntTxOut = self.blockStates[self.longest][1]
                     self.headMap.pop(block.blockHeader.prevBlock)
+                # Check- balance should not be a reference, it must be a copy
+                balance: int = self.blockBalance[block.blockHeader.prevBlock]
+                for txn in block.txnList:
+                    for txnOut in txn.txnOutputs:
+                        if txnOut.scriptPubKey is pubKey:
+                            balance += txnOut.amount
+                self.blockBalance[block.hash] = balance
+                # currentBalance will always correspond to the current longest chain block head
+                self.currentBalance = self.blockBalance[self.longest]
             # prevblock absent in the blockchain
             else:
                 # invalid block; reject it
