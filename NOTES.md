@@ -14,3 +14,11 @@
 * How many transactions should be in the pool, to start doing proof of work or before broadcasting a block? In other words, how many minimum no of transactions a block should have to broadcast it?
 * We can have a broadcastTxns instead of broadcast-a-single-txn so that any transaction which can be sent, will be sent - it will not wait for any other transaction to be able to broadcasted
 * We can initialize a hard-coded genesis block in the BlockChain() constructor itself
+* How many transactions to include in a new block?
+
+## Deciding the interface
+
+* What's needed to create a new transaction?
+-> For a simple transaction, these are the bare minimum required parameters:
+prevTxnHash and prevTxnIndex, sender pubKey and receiver pubKey, amount
+* How to generate transactions and when?

@@ -20,6 +20,7 @@ class BlockChain:
     def insert(self, block: Block, pubKey: str) -> Tuple[bool, BlockStatus]:
         # if this is Genesis Block
         if block.blockHeader.prevBlock is "":
+            print("genesis block")
             newBlkNode = BlockNode(block)
             self.blockMap[block.hash] = newBlkNode
             self.headMap[block.hash] = newBlkNode
@@ -78,11 +79,12 @@ class BlockChain:
             else:
                 # invalid block; reject it
                 return (False, BlockStatus.MISSING_PREV_BLOCK)
+        print("returning True")
         return (True, BlockStatus.VALID)
 
 # unit of node used inside blockchain implemented as linked list
 class BlockNode:
-    def __init__(self, block: Block, prevBlk: Optional[BlockNode] = None) -> None:
+    def __init__(self, block: Block, prevBlk = None) -> None:
         self.block = block
         if (prevBlk is None):
             self.prevBlk = None

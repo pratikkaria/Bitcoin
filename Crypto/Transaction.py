@@ -4,10 +4,21 @@ import utils
 from typing import List
 from constants import hashSize
 
+class TransactionOutput:
+    def __init__(self, amount: int):
+        self.amount = amount
+        self.scriptPubKey = ""
+
+    def __repr__(self):
+        return '{}:{}'.format(self.amount, self.script_pubkey)
+
+    def createScriptPubKey(self, publicKeyOfReceiver:str):
+        self.scriptPubKey = ScriptEngine.createPubKeyScript(utils.getHashValue(publicKeyOfReceiver,hashSize))
+
 class TransactionInput:
-    def __init__(self, prevTxn: str, prevIndex: str) -> None:
+    def __init__(self, prevTxn: str, prevIndex: int) -> None:
         self.prevTxn: str = prevTxn
-        self.prevIndex: str = prevIndex
+        self.prevIndex: int = prevIndex
         self.scriptSig: str = ""
         self.dataToSign: str = ""
 
@@ -37,17 +48,6 @@ class TransactionInput:
         self.scriptSig = ScriptEngine.createScriptSig(prevPubKeyScript, myPublicKey, signature)
 
 
-class TransactionOutput:
-    def __init__(self, amount: int):
-        self.amount = amount
-        self.scriptPubKey = ""
-
-    def __repr__(self):
-        return '{}:{}'.format(self.amount, self.script_pubkey)
-
-    def createScriptPubKey(self, publicKeyOfReceiver:str):
-        self.scriptPubKey = ScriptEngine.createPubKeyScript(utils.getHashValue(publicKeyOfReceiver,hashSize))
-
 
 class Transaction:
     def __init__(self, txnInputs: List[TransactionInput], txnOutputs: List[TransactionOutput], lockTime: int):
@@ -58,13 +58,13 @@ class Transaction:
 
     def getRawDataToHash(self):
         dataToHash = ""
-        dataToHash+= str(self.txnInputs.size())
+        dataToHash+= str(len(self.txnInputs))
         for i in self.txnInputs:
             dataToHash+= i.prevTxn
             dataToHash+= str(i.prevIndex)
             dataToHash+= i.scriptSig
 
-        dataToHash+= str(self.txnOutputs.size())
+        dataToHash+= str(len(self.txnOutputs))
         for i in self.txnOutputs:
             dataToHash+= str(i.amount)
             dataToHash+= str(i.scriptPubKey)
@@ -82,3 +82,6 @@ class Transaction:
         if self.hash == "":
             self.calculateHash()
         return self.hash
+
+    def getScriptPubKey(self, index: int) -> str:
+        return self.txnOutputs[index].scriptPubKey
