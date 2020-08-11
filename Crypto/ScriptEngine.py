@@ -5,6 +5,9 @@ from constants import opcodeList
 from typing import List
 from constants import hashSize
 
+def comparePubKeyAndScript(pubKey: str, pubKeyScript: str) -> bool:
+    return pubKeyScript == createPubKeyScript(utils.getHashValue(pubKey, hashSize))
+
 def createPubKeyScript(pubKeyHash: str) -> str:
     return "OP_DUP\tOP_HASH160\t"+pubKeyHash+"\tOP_EQUALVERIFY\tOP_CHECKSIG"
 

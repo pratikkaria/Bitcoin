@@ -30,30 +30,35 @@ def generateCoinBaseTransaction(recvList: List[Tuple[str, int]]) -> Transaction:
     return newTxn
 
 nNodes = 2
-pubKeys: List[str] = []
-privateKeys: List[str] = []
+pubKeys: List[List[str]] = []
+privateKeys: List[List[str]] = []
 for i in range(0, nNodes):
     (pubKey, privateKey) = utils.generateKeys(1024)
     pubKeyStr: str = pubKey.exportKey().decode()
     privateKeyStr: str = privateKey.exportKey().decode()
-    pubKeys.append(pubKeyStr)
-    privateKeys.append(privateKeyStr)
+    pubKeys.append([pubKeyStr])
+    privateKeys.append([privateKeyStr])
 amount = 1000
 nodesList: List[BitCoinNode] = []
+'''
 nodesTxns: Dict[int, List[Transaction]] = {}
+'''
 coinBaseTxns: List[Transaction] = []
 for i in range(0, nNodes):
-    node = BitCoinNode(pubKeys[i], privateKeys[i], nNodes)
+    node = BitCoinNode(pubKeys[i][0], privateKeys[i][0], nNodes)
     nodesList.append(node)
+    node.setNodesKeys(pubKeys)
 
-    coinBaseTxn = generateCoinBaseTransaction([(pubKeys[i], amount)])
+    coinBaseTxn = generateCoinBaseTransaction([(pubKeys[i][0], amount)])
     coinBaseTxns.append(coinBaseTxn)
 
 for i in range(0, nNodes):
     print("i: ", i)
     nodesList[i].addGenesisBlock(coinBaseTxns)
     nodesList[i].nodesList = nodesList
+    #print("keys: ", nodesList[i].blockchain.currentPrevTxnHashes.keys())
 
+'''
 for i in range(0, nNodes):
     prevTxnHash = coinBaseTxns[i].getHash()
     #nodesTxns[i] = [coinBaseTxn]
@@ -64,6 +69,7 @@ for i in range(0, nNodes):
     nodesTxns[i] = []
     nodesTxns[i].append(txn)
     nodesList[i].setGeneratedTxns(nodesTxns[i])
+'''
 
 procList = []
 for i in range(0, nNodes):

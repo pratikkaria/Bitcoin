@@ -10,7 +10,7 @@ class TransactionOutput:
         self.scriptPubKey = ""
 
     def __repr__(self):
-        return '{}:{}'.format(self.amount, self.script_pubkey)
+        return '{}:{}'.format(self.amount, self.scriptPubKey)
 
     def createScriptPubKey(self, publicKeyOfReceiver:str):
         self.scriptPubKey = ScriptEngine.createPubKeyScript(utils.getHashValue(publicKeyOfReceiver,hashSize))
@@ -23,7 +23,7 @@ class TransactionInput:
         self.dataToSign: str = ""
 
     def __repr__(self):
-        return '{}:{}'.format(self.prevTxn.hex(),self.prevIndex)
+        return '{}:{}'.format(self.prevTxn, self.prevIndex)
 
 
     def createDataToSign(self, prevPubKeyScript: str, myPublicKey: str, txnOutputs: List[TransactionOutput]):
