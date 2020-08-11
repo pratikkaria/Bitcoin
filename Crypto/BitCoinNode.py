@@ -93,6 +93,12 @@ class BitCoinNode:
                     print(pid, ": transaction verified")
                     self.mempool[newTxHash] = newTx
                     txnCnt += 1
+                    for index, newTxOut in enumerate(newTx.txnOutputs):
+                        if newTxOut.scriptPubKey is self.publicKeys[0]:
+                            if newTx.getHash() in self.blockchain.currentPrevTxnHashes:
+                                self.blockchain.currentPrevTxnHashes[newTx.getHash()].append(index)
+                            else:
+                                self.blockchain.currentPrevTxnHashes[newTx.getHash()] = []
             except:
                 # empty txQueue - ignore
                 emptyExcptn = True

@@ -15,6 +15,10 @@ class BlockChain:
         self.blockStates: Dict[str, Tuple[Dict[str, Transaction], Dict[str, Dict[int, TransactionOutput]]]] = {}
         self.blockBalance: Dict[str, int] = {} # map from all block hashes to the corresponding wallet balance
         self.currentBalance: int = 0
+        # per block previous transaction hashes as an aid for generating new transactions
+        self.blockPrevTxnHashes: Dict[str, Dict[str, List[int]]] = {}
+        # currentPrevTxnHashes is a Dict[txnHash, List[indices]]
+        self.currentPrevTxnHashes: Dict[str, List[int]] = {}
 
     # insert a new block into blockchain, return True (if all ok) return False (if block rejected)
     def insert(self, block: Block, pubKey: str) -> Tuple[bool, BlockStatus]:
@@ -27,13 +31,19 @@ class BlockChain:
             self.longest = block.hash
             unspntTxOut = {}
             balance: int = 0
+            self.blockPrevTxnHashes[block.hash] = {}
             for txn in block.txnList:
                 nums = list(range(len(txn.txnOutputs)))
                 dictTxnOuts = dict(zip(nums, txn.txnOutputs))
                 unspntTxOut[txn.getHash()] = dictTxnOuts
-                for txnOut in txn.txnOutputs:
+                for index, txnOut in enumerate(txn.txnOutputs):
                     if txnOut.scriptPubKey is pubKey:
                         balance += txnOut.amount
+                        if txn.getHash() in self.blockPrevTxnHashes[block.hash]:
+                            self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
+                        else:
+                            self.blockPrevTxnHashes[block.hash][txn.getHash()] = []
+            self.currentPrevTxnHashes = self.blockPrevTxnHashes[block.hash]
             self.blockBalance[block.hash] = balance
             self.currentBalance = balance
             self.blockStates[block.hash] = ({}, unspntTxOut)
@@ -68,8 +78,10 @@ class BlockChain:
                             atLeastOnePresent = True
                 if atLeastOnePresent is False:
                     return (False, BlockStatus.CYCLE_DETECTED)
+
                 # update the mempool and unspntTxOut structures for the new block
                 self.blockStates[block.hash] = (copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][0]), copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][1]))
+                self.blockPrevTxnHashes[block.hash] = copy.deepcopy(self.blockPrevTxnHashes[block.blockHeader.prevBlock])
                 for txn in block.txnList:
                     if txn.getHash() in self.blockStates[block.hash][0]:
                         nums = list(range(len(txn.txnOutputs)))
@@ -88,12 +100,17 @@ class BlockChain:
                             else:
                                 # Invalid path; impossible to come here
                                 return (False, BlockStatus.REJECTED)
+                            if txnIn.prevTxn in self.blockPrevTxnHashes[block.hash] and txnIn.prevIndex in self.blockPrevTxnHashes[block.hash][txnIn.prevTxn]:
+                                self.blockPrevTxnHashes[block.hash][txnIn.prevTxn].remove(txnIn.prevIndex)
+
                         # on becoming an empty list of txnOutputs, remove the transaction hash from unspntTxOut
                         if len(self.blockStates[block.hash][1][txnIn.prevTxn].keys()) == 0:
                             self.blockStates[block.hash][1].pop(txnIn.prevTxn)
+
                     else:
                         # invalid path; impossible to come here
                         return (False, BlockStatus.REJECTED)
+
                 # Now, add the buffered (temporary) txnOuts into unspntTxOut
                 for txn in block.txnList:
                     if len(bufferTxOuts[txn.getHash()].keys()) != 0:
@@ -113,12 +130,18 @@ class BlockChain:
                 # Check- balance should not be a reference, it must be a copy
                 balance: int = self.blockBalance[block.blockHeader.prevBlock]
                 for txn in block.txnList:
-                    for txnOut in txn.txnOutputs:
+                    for index, txnOut in enumerate(txn.txnOutputs):
                         if txnOut.scriptPubKey is pubKey:
                             balance += txnOut.amount
+                            if txn.getHash() in self.blockPrevTxnHashes[block.hash]:
+                                self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
+                            else:
+                                self.blockPrevTxnHashes[block.hash][txn.getHash()] = []
                 self.blockBalance[block.hash] = balance
                 # currentBalance will always correspond to the current longest chain block head
                 self.currentBalance = self.blockBalance[self.longest]
+                # currentPrevTxnHashes will always correspond to the longest chain
+                self.currentPrevTxnHashes = self.blockPrevTxnHashes[self.longest]
             # prevblock absent in the blockchain
             else:
                 # invalid block; reject it
