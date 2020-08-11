@@ -38,6 +38,9 @@ class BitCoinNode:
             self.privateKeys.append(privateKey)
         #self.createGenesisBlock(nNodes)
 
+    def setNodesList(self, nodesList: List[BitCoinNode]) -> None:
+        self.nodesList = nodesList
+
     def setGeneratedTxns(self, txns: List[Transaction]) -> None:
         self.generatedTxns = txns
 
@@ -82,7 +85,7 @@ class BitCoinNode:
                         verified = False
                         break
                     print("partially verified")
-                    if not ScrEng.verifyScriptSig(newTxIn.scriptSig, newTxIn.dataToSign, newTx.txnOutputs):
+                    if not ScrEng.verifyScriptSig(newTxIn.scriptSig, newTxIn.dataToSign):
                         verified = False
                         break
                 if verified:
