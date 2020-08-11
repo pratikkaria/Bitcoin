@@ -2,7 +2,9 @@ from Block import Block
 from typing import Dict, List, Optional, Tuple
 from Transaction import Transaction, TransactionOutput
 import copy
-from constants import BlockStatus
+from constants import BlockStatus, hashSize
+import ScriptEngine, utils, os
+from ScriptEngine import comparePubKeyAndScript
 
 class BlockChain:
     def __init__(self) -> None:
@@ -20,10 +22,17 @@ class BlockChain:
         # currentPrevTxnHashes is a Dict[txnHash, List[indices]]
         self.currentPrevTxnHashes: Dict[str, List[int]] = {}
 
+    def isCoinBaseTxn(self, txn: Transaction) -> bool:
+        if len(txn.txnInputs) == 1 and txn.txnInputs[0].prevIndex == int("ffffffff", 16):
+            # coinbase transaction
+            return True
+        return False
+
     # insert a new block into blockchain, return True (if all ok) return False (if block rejected)
     def insert(self, block: Block, pubKey: str) -> Tuple[bool, BlockStatus]:
+        pid = os.getpid()
         # if this is Genesis Block
-        if block.blockHeader.prevBlock is "":
+        if block.blockHeader.prevBlock == "":
             print("genesis block")
             newBlkNode = BlockNode(block)
             self.blockMap[block.hash] = newBlkNode
@@ -33,22 +42,27 @@ class BlockChain:
             balance: int = 0
             self.blockPrevTxnHashes[block.hash] = {}
             for txn in block.txnList:
+                #print("txn in genesisblock")
                 nums = list(range(len(txn.txnOutputs)))
                 dictTxnOuts = dict(zip(nums, txn.txnOutputs))
                 unspntTxOut[txn.getHash()] = dictTxnOuts
                 for index, txnOut in enumerate(txn.txnOutputs):
-                    if txnOut.scriptPubKey is pubKey:
+                    if comparePubKeyAndScript(pubKey, txnOut.scriptPubKey):
                         balance += txnOut.amount
+                        print("pubKey found")
                         if txn.getHash() in self.blockPrevTxnHashes[block.hash]:
                             self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
                         else:
                             self.blockPrevTxnHashes[block.hash][txn.getHash()] = []
+                            self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
             self.currentPrevTxnHashes = self.blockPrevTxnHashes[block.hash]
             self.blockBalance[block.hash] = balance
             self.currentBalance = balance
             self.blockStates[block.hash] = ({}, unspntTxOut)
             self.mempool = self.blockStates[self.longest][0]
+            #print(pid, ": mempool = ", self.mempool)
             self.unspntTxOut = self.blockStates[self.longest][1]
+            #print(pid, ": unspntTxOut= ", self.unspntTxOut)
         # for any block other than genesis block
         else:
             # prevblock exists in the blockchain
@@ -64,6 +78,14 @@ class BlockChain:
                 # check if any transaction in this new block is unknown to us
                 # verify other important semantics
                 for txn in block.txnList:
+                    print(pid, ": txnHash = ", txn.getHash())
+                for txn in block.txnList:
+                    print(pid, ": mempool = ", self.mempool)
+                    print(pid, ": txnHash = ", txn.getHash())
+                    #print(pid, ": blockStates.mempool = ", self.blockStates[block.blockHeader.prevBlock][0])
+                    assert self.mempool is self.blockStates[block.blockHeader.prevBlock][0]
+                    if self.isCoinBaseTxn(txn):
+                        continue
                     if txn.getHash() not in self.blockStates[block.blockHeader.prevBlock][0]:
                         # invalid transaction; reject the block
                         return (False, BlockStatus.MISSING_TXN)
@@ -76,13 +98,15 @@ class BlockChain:
                         else:
                             # TODO? check if the txnOutputs list/dict is not empty?
                             atLeastOnePresent = True
-                if atLeastOnePresent is False:
+                if atLeastOnePresent == False:
                     return (False, BlockStatus.CYCLE_DETECTED)
 
                 # update the mempool and unspntTxOut structures for the new block
                 self.blockStates[block.hash] = (copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][0]), copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][1]))
                 self.blockPrevTxnHashes[block.hash] = copy.deepcopy(self.blockPrevTxnHashes[block.blockHeader.prevBlock])
                 for txn in block.txnList:
+                    if self.isCoinBaseTxn(txn):
+                        continue
                     if txn.getHash() in self.blockStates[block.hash][0]:
                         nums = list(range(len(txn.txnOutputs)))
                         dictTxnOuts = dict(zip(nums, txn.txnOutputs))
@@ -94,7 +118,8 @@ class BlockChain:
                             # we can use block.hash instead of prevBlock's hash, as we have done deepcopy above
                             # .pop() would work, as we have used a Dict instead of a List - so the indices for other elements won't change
                             if txnIn.prevTxn in self.blockStates[block.hash][1]:
-                                self.blockStates[block.hash][1][txnIn.prevTxn].pop(txnIn.prevIndex)
+                                if txnIn.prevIndex in self.blockStates[block.hash][1][txnIn.prevTxn]:
+                                    self.blockStates[block.hash][1][txnIn.prevTxn].pop(txnIn.prevIndex)
                             elif txnIn.prevTxn in bufferTxOuts:
                                 bufferTxOuts[txnIn.prevTxn].pop(txnIn.prevIndex)
                             else:
@@ -104,7 +129,7 @@ class BlockChain:
                                 self.blockPrevTxnHashes[block.hash][txnIn.prevTxn].remove(txnIn.prevIndex)
 
                         # on becoming an empty list of txnOutputs, remove the transaction hash from unspntTxOut
-                        if len(self.blockStates[block.hash][1][txnIn.prevTxn].keys()) == 0:
+                        if txnIn.prevTxn in self.blockStates[block.hash][1] and len(self.blockStates[block.hash][1][txnIn.prevTxn].keys()) == 0:
                             self.blockStates[block.hash][1].pop(txnIn.prevTxn)
 
                     else:
@@ -113,6 +138,11 @@ class BlockChain:
 
                 # Now, add the buffered (temporary) txnOuts into unspntTxOut
                 for txn in block.txnList:
+                    if self.isCoinBaseTxn(txn):
+                        nums = list(range(len(txn.txnOutputs)))
+                        dictTxnOuts = dict(zip(nums, txn.txnOutputs))
+                        self.blockStates[block.hash][1][txn.getHash()] = dictTxnOuts
+                        continue
                     if len(bufferTxOuts[txn.getHash()].keys()) != 0:
                         self.blockStates[block.hash][1][txn.getHash()] = bufferTxOuts[txn.getHash()]
 
@@ -131,12 +161,13 @@ class BlockChain:
                 balance: int = self.blockBalance[block.blockHeader.prevBlock]
                 for txn in block.txnList:
                     for index, txnOut in enumerate(txn.txnOutputs):
-                        if txnOut.scriptPubKey is pubKey:
+                        if comparePubKeyAndScript(pubKey, txnOut.scriptPubKey):
                             balance += txnOut.amount
                             if txn.getHash() in self.blockPrevTxnHashes[block.hash]:
                                 self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
                             else:
                                 self.blockPrevTxnHashes[block.hash][txn.getHash()] = []
+                                self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
                 self.blockBalance[block.hash] = balance
                 # currentBalance will always correspond to the current longest chain block head
                 self.currentBalance = self.blockBalance[self.longest]
@@ -153,7 +184,7 @@ class BlockChain:
 class BlockNode:
     def __init__(self, block: Block, prevBlk = None) -> None:
         self.block = block
-        if (prevBlk is None):
+        if (prevBlk == None):
             self.prevBlk = None
             self.len: int = 1
         else:
