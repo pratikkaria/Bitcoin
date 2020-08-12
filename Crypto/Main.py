@@ -29,7 +29,7 @@ def generateCoinBaseTransaction(recvList: List[Tuple[str, int]]) -> Transaction:
     newTxn = Transaction([txnInput], txnOutputs, constants.lockTime)
     return newTxn
 
-nNodes = 2
+nNodes = 10
 pubKeys: List[List[str]] = []
 privateKeys: List[List[str]] = []
 for i in range(0, nNodes):
@@ -78,5 +78,5 @@ for i in range(0, nNodes):
     proc.start()
     print("started process: ", i)
 for proc in procList:
+    print("joining process", i)
     proc.join()
-    print("joined process")

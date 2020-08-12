@@ -33,7 +33,7 @@ class BlockChain:
         pid = os.getpid()
         # if this is Genesis Block
         if block.blockHeader.prevBlock == "":
-            print("genesis block")
+            print(pid, ": Inserting genesis block..")
             newBlkNode = BlockNode(block)
             self.blockMap[block.hash] = newBlkNode
             self.headMap[block.hash] = newBlkNode
@@ -49,7 +49,7 @@ class BlockChain:
                 for index, txnOut in enumerate(txn.txnOutputs):
                     if comparePubKeyAndScript(pubKey, txnOut.scriptPubKey):
                         balance += txnOut.amount
-                        print("pubKey found")
+                        #print("pubKey found")
                         if txn.getHash() in self.blockPrevTxnHashes[block.hash]:
                             self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
                         else:
@@ -66,6 +66,7 @@ class BlockChain:
         # for any block other than genesis block
         else:
             # prevblock exists in the blockchain
+            print(pid, ": Trying to insert a new block..")
             if block.blockHeader.prevBlock in self.blockMap:
                 # temporary buffer of txOutputs in the current block
                 bufferTxOuts: Dict[str, Dict[int, TransactionOutput]] = {}
@@ -78,12 +79,10 @@ class BlockChain:
                 # check if any transaction in this new block is unknown to us
                 # verify other important semantics
                 for txn in block.txnList:
-                    print(pid, ": txnHash = ", txn.getHash())
-                for txn in block.txnList:
-                    print(pid, ": mempool = ", self.mempool)
-                    print(pid, ": txnHash = ", txn.getHash())
+                    #print(pid, ": mempool = ", self.mempool)
+                    #print(pid, ": txnHash = ", txn.getHash())
                     #print(pid, ": blockStates.mempool = ", self.blockStates[block.blockHeader.prevBlock][0])
-                    assert self.mempool is self.blockStates[block.blockHeader.prevBlock][0]
+                    #assert self.mempool is self.blockStates[block.blockHeader.prevBlock][0]
                     if self.isCoinBaseTxn(txn):
                         continue
                     if txn.getHash() not in self.blockStates[block.blockHeader.prevBlock][0]:
@@ -95,14 +94,14 @@ class BlockChain:
                             if txnIn.prevTxn not in bufferTxOuts:
                                 # prev transaction not present in current block too
                                 return (False, BlockStatus.MISSING_PREV_TXN)
-                        else:
-                            # TODO? check if the txnOutputs list/dict is not empty?
-                            atLeastOnePresent = True
+                        # TODO? check if the txnOutputs list/dict is not empty?
+                        atLeastOnePresent = True
                 if atLeastOnePresent == False:
                     return (False, BlockStatus.CYCLE_DETECTED)
 
                 # update the mempool and unspntTxOut structures for the new block
-                self.blockStates[block.hash] = (copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][0]), copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][1]))
+                #self.blockStates[block.hash] = (copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][0]), copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][1]))
+                self.blockStates[block.hash] = copy.deepcopy(self.blockStates[block.blockHeader.prevBlock])
                 self.blockPrevTxnHashes[block.hash] = copy.deepcopy(self.blockPrevTxnHashes[block.blockHeader.prevBlock])
                 for txn in block.txnList:
                     if self.isCoinBaseTxn(txn):
@@ -124,6 +123,7 @@ class BlockChain:
                                 bufferTxOuts[txnIn.prevTxn].pop(txnIn.prevIndex)
                             else:
                                 # Invalid path; impossible to come here
+                                print(pid, ": TxnInput => ", txnIn.prevTxn, " not present in unspntTxOut and bufferTxOuts!")
                                 return (False, BlockStatus.REJECTED)
                             if txnIn.prevTxn in self.blockPrevTxnHashes[block.hash] and txnIn.prevIndex in self.blockPrevTxnHashes[block.hash][txnIn.prevTxn]:
                                 self.blockPrevTxnHashes[block.hash][txnIn.prevTxn].remove(txnIn.prevIndex)
@@ -134,6 +134,7 @@ class BlockChain:
 
                     else:
                         # invalid path; impossible to come here
+                        print(pid, ": Txn => ", txn.getHash(), " not present in mempool!")
                         return (False, BlockStatus.REJECTED)
 
                 # Now, add the buffered (temporary) txnOuts into unspntTxOut
@@ -177,7 +178,7 @@ class BlockChain:
             else:
                 # invalid block; reject it
                 return (False, BlockStatus.MISSING_PREV_BLOCK)
-        print("returning True")
+        print(pid, ": new block inserted successfully!")
         return (True, BlockStatus.VALID)
 
 # unit of node used inside blockchain implemented as linked list
