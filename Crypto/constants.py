@@ -8,6 +8,9 @@ arity = 2 #Arity of merkle tree
 Y = 10  #Limit on number of coins
 X = 5 #Number of coins to deduct
 lockTime = 15
+votingFee = 1
+candidates = ["Apple", "Mango", "Banana", "Orange"]
+
 class BlockStatus(IntEnum):
     VALID = auto()
     REJECTED = auto()
@@ -16,6 +19,7 @@ class BlockStatus(IntEnum):
     MISSING_PREV_TXN = auto()
     MISSING_PREV_BLOCK = auto()
     CYCLE_DETECTED = auto()
+
 class Threshold(IntEnum):
     TXN_THRESHOLD = 50
     BLK_THRESHOLD = 500
