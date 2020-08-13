@@ -8,7 +8,7 @@ import ScriptEngine as ScrEng
 from ScriptEngine import comparePubKeyAndScript
 from MerkleTree import MerkleTree
 import binascii
-from constants import BlockStatus, coinbase, Threshold, lockTime
+from constants import BlockStatus, coinbase, Threshold, lockTime, votingFee, genesisTxnAmount
 import utils
 import os
 
@@ -240,6 +240,14 @@ class BitCoinNode:
         self.blockchain.mempool[newTxn.getHash()] = newTxn
         #print(pid, ": generateTransaction success => ", newTxn.getHash())
 
+    def broadcastTxn(self, txn: Transaction, nodesList: List) -> None:
+        for node in self.nodesList:
+            if node.id != self.id:
+                node.txQueue.put(txn)
+        # adding it to own mempool directly
+        self.blockchain.mempool[txn.getHash()] = txn
+        # does it contain some amount to myself?
+
     def broadcastTxns(self) -> None:
         pid = os.getpid()
         self.generateTransaction()
@@ -361,6 +369,20 @@ class BitCoinNode:
         (result, status) = self.blockchain.insert(newBlk, self.pubKeys[0])
         print(pid, ": Block insertion status = ", status)
         assert result == True
+
+    def broadcastAndRunTillSettled(self, txn: Transaction, nodesList: List):
+        pid = os.getpid()
+        self.broadcastTxn(txn, nodesList)
+        nVotingNodes = len(nodesList) - 1
+        while(True):
+            if (self.blockchain.currentBalance <= genesisTxnAmount or self.blockchain.currentBalance >= nVotingNodes * votingFee):
+                break
+            self.broadcastTxns()
+            self.processTxns()
+            self.processBlks()
+            if self.blockchain.mempool:
+                newBlk = self.proofOfWork()
+                self.broadcastBlock(newBlk)
 
     def startRunning(self) -> None:
         pid = os.getpid()

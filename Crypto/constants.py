@@ -9,6 +9,7 @@ Y = 10  #Limit on number of coins
 X = 5 #Number of coins to deduct
 lockTime = 15
 votingFee = 1
+genesisTxnAmount = 1000
 candidates = ["Apple", "Mango", "Banana", "Orange"]
 
 class BlockStatus(IntEnum):

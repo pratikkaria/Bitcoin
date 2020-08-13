@@ -61,7 +61,7 @@ class SmartContractNode:
     def castVote(self):
         numberOfCandidates: int = len(self.candidates)
         toVote = random.randint(0,numberOfCandidates-1)
-        myVote: string = self.candidates[toVote]
+        myVote: str = self.candidates[toVote]
         self.hasVoted = True
         self.vote = myVote
 
@@ -89,7 +89,7 @@ class SmartContractNode:
         newTxn = Transaction(txnInputs, txnOutputs, constants.lockTime)
         newTxn.calculateHash()
         return newTxn
-        
+
     def startContract(self) -> None:
         if self.type=="voter":
             pid = os.getpid()
@@ -106,7 +106,6 @@ class SmartContractNode:
             # self.getDetailsForTxn()
             print(str(pid))
             (prevTxnHash, prevIndex, prevScriptSig) = self.getDetailsForTxn()
-            self.
 
 
         elif self.type=="initiator":
