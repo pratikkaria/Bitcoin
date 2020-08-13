@@ -103,6 +103,7 @@ class BlockChain:
                 #self.blockStates[block.hash] = (copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][0]), copy.deepcopy(self.blockStates[block.blockHeader.prevBlock][1]))
                 self.blockStates[block.hash] = copy.deepcopy(self.blockStates[block.blockHeader.prevBlock])
                 self.blockPrevTxnHashes[block.hash] = copy.deepcopy(self.blockPrevTxnHashes[block.blockHeader.prevBlock])
+                self.blockBalance[block.hash] = copy.deepcopy(self.blockBalance[block.blockHeader.prevBlock])
                 for txn in block.txnList:
                     if self.isCoinBaseTxn(txn):
                         continue
@@ -118,9 +119,16 @@ class BlockChain:
                             # .pop() would work, as we have used a Dict instead of a List - so the indices for other elements won't change
                             if txnIn.prevTxn in self.blockStates[block.hash][1]:
                                 if txnIn.prevIndex in self.blockStates[block.hash][1][txnIn.prevTxn]:
+                                    tmpTxnOut: TransactionOutput = self.blockStates[block.hash][1][txnIn.prevTxn][txnIn.prevIndex]
+                                    if comparePubKeyAndScript(pubKey, tmpTxnOut.scriptPubKey):
+                                        self.blockBalance[block.hash] -= tmpTxnOut.amount
                                     self.blockStates[block.hash][1][txnIn.prevTxn].pop(txnIn.prevIndex)
                             elif txnIn.prevTxn in bufferTxOuts:
-                                bufferTxOuts[txnIn.prevTxn].pop(txnIn.prevIndex)
+                                if txnIn.prevIndex in bufferTxOuts[txnIn.prevTxn]:
+                                    tmpTxnOut: TransactionOutput = bufferTxOuts[txnIn.prevTxn][txnIn.prevIndex]
+                                    if comparePubKeyAndScript(pubKey, tmpTxnOut.scriptPubKey):
+                                        self.blockBalance[block.hash] -= tmpTxnOut.amount
+                                    bufferTxOuts[txnIn.prevTxn].pop(txnIn.prevIndex)
                             else:
                                 # Invalid path; impossible to come here
                                 print(pid, ": TxnInput => ", txnIn.prevTxn, " not present in unspntTxOut and bufferTxOuts!")
@@ -159,7 +167,7 @@ class BlockChain:
                         self.unspntTxOut = self.blockStates[self.longest][1]
                     self.headMap.pop(block.blockHeader.prevBlock)
                 # Check- balance should not be a reference, it must be a copy
-                balance: int = self.blockBalance[block.blockHeader.prevBlock]
+                balance: int = self.blockBalance[block.hash]
                 for txn in block.txnList:
                     for index, txnOut in enumerate(txn.txnOutputs):
                         if comparePubKeyAndScript(pubKey, txnOut.scriptPubKey):
