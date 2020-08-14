@@ -19,19 +19,22 @@ def createCoinBase(recvList: List[Tuple[str, int]])->Transaction:
 
 nNodes = 10
 voters: List[SmartContractNode] = []
+nodeDict = {}
 for i in range(0,nNodes-1):
     newNode = SmartContractNode("voter",nNodes)
     voters.append(newNode)
 
 initiator: SmartContractNode = SmartContractNode("initiator", nNodes, constants.candidates)
-initiator.nodeList = voters
-
+voters.append(initiator)
+initiator.nodeList = voters[:-1]
+for i in range(0, nNodes-1):
+    voters[i].nodeList = voters
 coinBaseTxns: List[Transaction] = []
 for node in voters:
-    coinBaseTxn = createCoinBase([(node.publicKey, constants.coinbase)])
+    coinBaseTxn = createCoinBase([(node.publicKey, constants.genesisTxnAmount)])
     coinBaseTxns.append(coinBaseTxn)
 
-coinBaseTxns.append(createCoinBase([(initiator.publicKey, constants.coinbase)]))
+coinBaseTxns.append(createCoinBase([(initiator.publicKey, constants.genesisTxnAmount)]))
 
 for node in voters:
     node.nodeObject.addGenesisBlock(coinBaseTxns)

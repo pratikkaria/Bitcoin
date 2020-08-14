@@ -78,6 +78,6 @@ class MerkleTree:
         self.mrkl_root = newLevel[0]
 
 
-merkle_tree = MerkleTree(5)
-# merkle_tree.createMerkleTree(["a","b","c","d","e","f","g"])
-print(verifyMerkleTree(merkle_tree.mrkl_root))
+# merkle_tree = MerkleTree(5)
+# # merkle_tree.createMerkleTree(["a","b","c","d","e","f","g"])
+# print(verifyMerkleTree(merkle_tree.mrkl_root))

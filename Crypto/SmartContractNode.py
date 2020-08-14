@@ -27,7 +27,7 @@ class SmartContractNode:
         self.nNodes = nNodes
         self.nodeObject: BitCoinNode = BitCoinNode(pubKeyStr, privateKeyStr, self.nNodes)
         self.messages: Queue = Queue()
-
+        self.nodeList: List[SmartContractNode] = []
         if type=="voter":
             self.vote: str = ""
             self.hasVoted: bool = False
@@ -36,11 +36,10 @@ class SmartContractNode:
             self.votes: Dict[str, int] = {}
             self.currVoteCount: int = 0
             self.peopleVoted: List[str] = []
-            self.nodeList: List[SmartContractNode] = []
             self.candidates: List[str] = votingOptions
 
         self.type: str = type
-
+        # self.nodeId: int = nodeId
 
     def haveAllVotesCome(self)->bool:
         if self.currVoteCount==(self.nNodes-1):
@@ -70,12 +69,12 @@ class SmartContractNode:
         keys = self.nodeObject.blockchain.unspntTxOut.keys()
         # prevTxnHash = list(self.nodeObject.blockchain.blockPrevTxnHashes.keys())[0]
         prevTxnHash: str = list(self.nodeObject.blockchain.currentPrevTxnHashes.keys())[0]
-        prevIndex: int = self.nodeObject.blockchain.currentPrevTxnHashes[prevTxnHash]
-        prevScriptSig: str = self.nodeObject.blockchain.unspntTxOut[prevTxnHash][prevIndex]
+        prevIndex: int = self.nodeObject.blockchain.currentPrevTxnHashes[prevTxnHash][0]
+        prevScriptSig: str = self.nodeObject.blockchain.unspntTxOut[prevTxnHash][prevIndex].scriptPubKey
         return (prevTxnHash, prevIndex, prevScriptSig)
 
 
-    def generateTransaction(sendList: List[Tuple[str, int, str, str, str]], recvList: List[Tuple[str, int]]) -> Transaction:
+    def generateTransaction(self,sendList: List[Tuple[str, int, str, str, str]], recvList: List[Tuple[str, int]]) -> Transaction:
         txnOutputs: List[TransactionOutput] = []
         for (recvPubKey, amount) in recvList:
             txnOut = TransactionOutput(amount)
@@ -97,21 +96,23 @@ class SmartContractNode:
                 if self.messages.empty():
                     continue
                 break
-
             message: List[str] = self.messages.get_nowait()
             self.candidates = message[:-1]
             self.castVote()
             initiatorPublicKey = message[-1]
-            # print(initiatorPublicKey)
-            # self.getDetailsForTxn()
-            print(str(pid))
             (prevTxnHash, prevIndex, prevScriptSig) = self.getDetailsForTxn()
-
-
+            newTxn: Transaction = self.generateTransaction([(prevTxnHash, prevIndex, prevScriptSig,self.publicKey, self.privateKey)],[(initiatorPublicKey,constants.contractFees)])
+            blockNodeList: List[BitCoinNode] = []
+            for node in self.nodeList:
+                blockNodeList.append(node.nodeObject)
+            self.nodeObject.broadcastAndRunTillSettled(newTxn, blockNodeList)
+            print("Done")
+            print("Balance is " + str(self.nodeObject.blockchain.currentBalance))
         elif self.type=="initiator":
             pid = os.getpid()
             print("Initiator : " + str(pid))
             completedSending = 0
+            print("Initiator Node List: " + str(len(self.nodeList)))
             while(True):
                 if completedSending==0:
                     msg: List[str] = self.candidates
@@ -120,4 +121,6 @@ class SmartContractNode:
                         voter.messages.put(msg)
                     completedSending = 1
                 else:
+                    if self.messages.empty():
+                        continue
                     break
