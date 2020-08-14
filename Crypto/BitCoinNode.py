@@ -65,7 +65,7 @@ class BitCoinNode:
         pid = os.getpid()
         try:
             newBlk: Block = self.blkQueue.get_nowait()
-            #print(pid, ": new block arrived in the blockqueue..")
+            print(pid, ": new block arrived in the blockqueue..")
             # before inserting, block verification is done inside the BlockChain.insert() method
             (result, status) = self.blockchain.insert(newBlk, self.pubKeys[0])
             if result:
@@ -438,8 +438,9 @@ class BitCoinNode:
             self.processTxns()
             self.processBlks()
             if len(list(self.blockchain.mempool.keys())) > 0:
-                newBlk = self.proofOfWork()
-                self.broadcastBlock(newBlk)
+                (status, newBlk) = self.proofOfWork()
+                if status == True:
+                    self.broadcastBlock(newBlk)
 
     def startRunning(self) -> None:
         pid = os.getpid()
