@@ -75,11 +75,28 @@ class SmartContractNode:
 
 
     def generateTransaction(self,sendList: List[Tuple[str, int, str, str, str]], recvList: List[Tuple[str, int]]) -> Transaction:
+        pid = os.getpid()
+        prevAmount = 0
+        for (prevTxnHash, prevIndex, prevPubKeyScript, myPublicKey, myPrivateKey) in sendList:
+            if prevTxnHash in self.nodeObject.blockchain.mempool:
+                prevAmount = self.blockchain.mempool[prevTxnHash].txnOutputs[prevIndex].amount
+            elif prevTxnHash in self.nodeObject.blockchain.unspntTxOut:
+                if prevIndex in self.nodeObject.blockchain.unspntTxOut[prevTxnHash]:
+                    prevAmount = self.nodeObject.blockchain.unspntTxOut[prevTxnHash][prevIndex].amount
+        print(pid, ": prevAmount = ", prevAmount)
+        selfAmount = 0
         txnOutputs: List[TransactionOutput] = []
         for (recvPubKey, amount) in recvList:
             txnOut = TransactionOutput(amount)
             txnOut.createScriptPubKey(recvPubKey)
             txnOutputs.append(txnOut)
+            if prevAmount - amount > 0:
+                selfAmount = prevAmount - amount
+        if selfAmount > 0:
+            txnOut = TransactionOutput(selfAmount)
+            txnOut.createScriptPubKey(self.publicKey)
+            txnOutputs.append(txnOut)
+
         txnInputs: List[TransactionInput] = []
         for (prevTxnHash, prevIndex, prevPubKeyScript, myPublicKey, myPrivateKey) in sendList:
             txnIn = TransactionInput(prevTxnHash, prevIndex)

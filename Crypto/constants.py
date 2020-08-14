@@ -21,6 +21,7 @@ class BlockStatus(IntEnum):
     MISSING_PREV_TXN = auto()
     MISSING_PREV_BLOCK = auto()
     CYCLE_DETECTED = auto()
+    IDENTICAL_MERKELTREE_HASH = auto()
 
 class Threshold(IntEnum):
     TXN_THRESHOLD = 50

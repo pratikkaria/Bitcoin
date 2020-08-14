@@ -32,7 +32,8 @@ class BitCoinNode:
         BitCoinNode.id += 1
         self.id: int = BitCoinNode.id
         #self.target: str = "0000000000000000007e9e4c586439b0cdbe13b1370bdd9435d76a644d047523"
-        self.target: str = "0987892757f34247427e9e4c586439b0cdbe13b1370bdd9435d76a644d047523"
+        #self.target: str = "0987892757f34247427e9e4c586439b0cdbe13b1370bdd9435d76a644d047523"
+        self.target: str = "0007892757f34247427e9e4c586439b0cdbe13b1370bdd9435d76a644d047523"
         self.pubKeys: List[str] = []
         if pubKey:
             self.pubKeys.append(pubKey)
@@ -335,10 +336,22 @@ class BitCoinNode:
         pid = os.getpid()
         restart = True
         newBlk: Block
+        flag = False
         while restart == True:
+            if len(list(self.blockchain.mempool.keys())) == 0:
+                flag = True
+                break
             restart = False
             print(pid, ": Starting proof of work..")
             newBlk = self.createBlock()
+            strRandom = random.getrandbits(128)
+            strRandom = hex(strRandom)
+            tmpRandom = random.randrange(1, 15, 3)
+            strRandom = "0"*tmpRandom + strRandom[tmpRandom:]
+            #for i in range(tmpRandom):
+            #    strRandom[i] = '0'
+            self.target = strRandom
+
             while (newBlk.hash >= self.target):
                 print(pid, ": finding nonce..")
                 nonce = random.randint(0, 2147483647)
@@ -348,9 +361,13 @@ class BitCoinNode:
                 count = self.processBlks()
                 if count > 0:
                     print(pid, ": Restarting proof of work..")
+                    print(pid, ": mempool size (after break)= ", len(list(self.blockchain.mempool.keys())))
                     restart = True
                     break
-        print(pid, ": New block => ", newBlk.hash, " mined successfully!")
+        if flag == False:
+            print(pid, ": New block => ", newBlk.hash, " mined successfully!")
+        else:
+            print(pid, ": proofwork is aborted!")
         # no need to clear the mempool here? We are already shifting the transactions in a newly arrived block in the blockchain.insert() method
         #print(pid, ": clearing the mempool..")
         #self.blockchain.mempool.clear()
@@ -368,19 +385,23 @@ class BitCoinNode:
         print(pid, ": Inserting the same block in own blockchain..")
         (result, status) = self.blockchain.insert(newBlk, self.pubKeys[0])
         print(pid, ": Block insertion status = ", status)
+        print(pid, ": mempool size(after insert) = ", len(list(self.blockchain.mempool.keys())))
         assert result == True
 
     def broadcastAndRunTillSettled(self, txn: Transaction, nodesList: List):
         pid = os.getpid()
+        print(pid, ": balance = ", self.blockchain.currentBalance)
         self.broadcastTxn(txn, nodesList)
         nVotingNodes = len(nodesList) - 1
         while(True):
-            if (self.blockchain.currentBalance < genesisTxnAmount or self.blockchain.currentBalance >= nVotingNodes * votingFee):
+            print(pid, ": loop again..")
+            if (self.blockchain.currentBalance != genesisTxnAmount):
+                print(pid, ": currentBalance = ", self.blockchain.currentBalance)
                 break
             # self.broadcastTxns()
             self.processTxns()
             self.processBlks()
-            if self.blockchain.mempool:
+            if len(list(self.blockchain.mempool.keys())) > 0:
                 newBlk = self.proofOfWork()
                 self.broadcastBlock(newBlk)
 
