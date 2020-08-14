@@ -12,6 +12,7 @@ votingFee = 1
 genesisTxnAmount = 1000
 candidates = ["Apple", "Mango", "Banana", "Orange"]
 contractFees = 1
+txnLimit = 10
 
 class BlockStatus(IntEnum):
     VALID = auto()

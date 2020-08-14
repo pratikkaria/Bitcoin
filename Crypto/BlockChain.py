@@ -53,7 +53,8 @@ class BlockChain:
                         balance += txnOut.amount
                         #print("pubKey found")
                         if txn.getHash() in self.blockPrevTxnHashes[block.hash]:
-                            self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
+                            if index not in self.blockPrevTxnHashes[block.hash][txn.getHash()]:
+                                self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
                         else:
                             self.blockPrevTxnHashes[block.hash][txn.getHash()] = []
                             self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
@@ -187,7 +188,8 @@ class BlockChain:
                         if comparePubKeyAndScript(pubKey, txnOut.scriptPubKey):
                             self.blockBalance[block.hash] += txnOut.amount
                             if txn.getHash() in self.blockPrevTxnHashes[block.hash]:
-                                self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
+                                if index not in self.blockPrevTxnHashes[block.hash][txn.getHash()]:
+                                    self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)
                             else:
                                 self.blockPrevTxnHashes[block.hash][txn.getHash()] = []
                                 self.blockPrevTxnHashes[block.hash][txn.getHash()].append(index)

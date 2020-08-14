@@ -1,4 +1,4 @@
-from multiprocessing import Process
+from multiprocessing import Process, Value, Array, Lock
 from BitCoinNode import BitCoinNode
 from Transaction import Transaction, TransactionOutput, TransactionInput
 import utils, binascii, constants
@@ -29,7 +29,7 @@ def generateCoinBaseTransaction(recvList: List[Tuple[str, int]]) -> Transaction:
     newTxn = Transaction([txnInput], txnOutputs, constants.lockTime)
     return newTxn
 
-nNodes = 10
+nNodes = 3
 pubKeys: List[List[str]] = []
 privateKeys: List[List[str]] = []
 for i in range(0, nNodes):
@@ -43,9 +43,12 @@ nodesList: List[BitCoinNode] = []
 '''
 nodesTxns: Dict[int, List[Transaction]] = {}
 '''
+nTxns = Value('i', 0)
+mempoolStatus = Array('i', 10)
+#lock = Lock()
 coinBaseTxns: List[Transaction] = []
 for i in range(0, nNodes):
-    node = BitCoinNode(pubKeys[i][0], privateKeys[i][0], nNodes)
+    node = BitCoinNode(pubKeys[i][0], privateKeys[i][0], nNodes, nTxns, i, mempoolStatus)
     nodesList.append(node)
     node.setNodesKeys(pubKeys)
 
