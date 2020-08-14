@@ -17,7 +17,7 @@ def createCoinBase(recvList: List[Tuple[str, int]])->Transaction:
     return newTxn
 
 
-nNodes = 4
+nNodes = 10
 voters: List[SmartContractNode] = []
 nodeDict = {}
 for i in range(0,nNodes-1):
