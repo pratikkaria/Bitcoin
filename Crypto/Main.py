@@ -48,7 +48,8 @@ mempoolStatus = Array('i', 10)
 #lock = Lock()
 coinBaseTxns: List[Transaction] = []
 for i in range(0, nNodes):
-    node = BitCoinNode(pubKeys[i][0], privateKeys[i][0], nNodes, nTxns, i, mempoolStatus)
+    node = BitCoinNode(pubKeys[i][0], privateKeys[i][0], nNodes)
+    node.setTxnCnt(nTxns)
     nodesList.append(node)
     node.setNodesKeys(pubKeys)
 
@@ -80,6 +81,6 @@ for i in range(0, nNodes):
     procList.append(proc)
     proc.start()
     print("started process: ", i)
-for proc in procList:
+for i, proc in enumerate(procList):
     print("joining process", i)
     proc.join()

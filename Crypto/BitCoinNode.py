@@ -8,7 +8,7 @@ import ScriptEngine as ScrEng
 from ScriptEngine import comparePubKeyAndScript
 from MerkleTree import MerkleTree
 import binascii
-from constants import BlockStatus, coinbase, Threshold, lockTime, votingFee, genesisTxnAmount, txnLimit, nonceSize
+from constants import BlockStatus, coinbase, Threshold, lockTime, votingFee, genesisTxnAmount, txnLimit, nonceSize, perTxnLimit
 import utils
 import os
 
@@ -16,7 +16,7 @@ import os
 class BitCoinNode:
     id: int = 0
     #def __init__(self, pubKey: str, privateKey: str, nNodes: int, blockchain: BlockChain = BlockChain(), txQueue: Queue = Queue(), blkQueue: Queue = Queue()) -> None:
-    def __init__(self, pubKey: str, privateKey: str, nNodes: int, nTxns, arrId, mempoolStatus) -> None:
+    def __init__(self, pubKey: str, privateKey: str, nNodes: int) -> None:
         blockchain = BlockChain()
         txQueue = Queue()
         blkQueue = Queue()
@@ -29,9 +29,12 @@ class BitCoinNode:
         self.generatedTxns: List[Transaction] = []
         self.nodesList: List[BitCoinNode] = []
         self.nodesKeys: List[List[str]] = []
-        self.nTxns = nTxns
-        self.arrId = arrId
-        self.mempoolStatus = mempoolStatus
+        self.txnCnt = 0
+        self.nTxns = 0
+        self.nNodes = nNodes
+        #self.nTxns = nTxns
+        #self.arrId = arrId
+        #self.mempoolStatus = mempoolStatus
         BitCoinNode.id += 1
         self.id: int = BitCoinNode.id
         #self.target: str = "0000000000000000007e9e4c586439b0cdbe13b1370bdd9435d76a644d047523"
@@ -44,6 +47,9 @@ class BitCoinNode:
         if privateKey:
             self.privateKeys.append(privateKey)
         #self.createGenesisBlock(nNodes)
+
+    def setTxnCnt(self, txnCnt):
+        self.nTxns = txnCnt
 
     def setNodesKeys(self, nodesKeys: List[List[str]]):
         self.nodesKeys = nodesKeys
@@ -59,7 +65,7 @@ class BitCoinNode:
         pid = os.getpid()
         try:
             newBlk: Block = self.blkQueue.get_nowait()
-            print(pid, ": new block arrived in the blockqueue..")
+            #print(pid, ": new block arrived in the blockqueue..")
             # before inserting, block verification is done inside the BlockChain.insert() method
             (result, status) = self.blockchain.insert(newBlk, self.pubKeys[0])
             if result:
@@ -257,12 +263,15 @@ class BitCoinNode:
 
     def broadcastTxns(self) -> None:
         pid = os.getpid()
-        with self.nTxns.get_lock():
-            if self.nTxns.value >= txnLimit:
+        #with self.nTxns.get_lock():
+        #    if self.nTxns.value >= txnLimit:
                 #print(pid, ": (broadcastTxn)nTxns = ", self.nTxns.value)
                 # stop
-                return
+        #        return
+        if self.nTxns.value >= txnLimit + self.nNodes:
+            return
         self.generateTransaction()
+        self.nTxns.value += 1
         txn: Transaction
         skip: bool = False
         for txn in self.generatedTxns:
@@ -282,9 +291,9 @@ class BitCoinNode:
                         node.txQueue.put(txn)
             self.generatedTxns.remove(txn)
             pass
-        with self.nTxns.get_lock():
-            self.nTxns.value += 1
-            print(pid, ": (incremented)nTxns = ", self.nTxns.value)
+        #with self.nTxns.get_lock():
+        #    self.nTxns.value += 1
+        #    print(pid, ": (incremented)nTxns = ", self.nTxns.value)
         pass
 
     def createCoinBaseTxn(self, amount: int = coinbase) -> Transaction:
@@ -440,19 +449,23 @@ class BitCoinNode:
             # time.sleep(random.randint(1, 3))
             # broadcast transaction(s)
             #print(pid, ": broadbast begin")
-            stop = True
-            with self.nTxns.get_lock():
-                if self.nTxns.value >= txnLimit:
+            #stop = True
+            #with self.nTxns.get_lock():
+                #if self.nTxns.value >= txnLimit:
                     #print(pid, ": (startRunning)nTxns = ", self.nTxns.value)
-                    with self.mempoolStatus.get_lock():
-                        for id in range(len(self.nodesList)):
-                            if self.mempoolStatus[id] == 0:
-                                stop = False
-                                break
-                    if stop == True:
-                        print(pid, ": Terminating the while loop..")
-                        print(pid, ": nTxns = ", self.nTxns.value)
-                        break
+                    #with self.mempoolStatus.get_lock():
+                    #    for id in range(len(self.nodesList)):
+                    #        if self.mempoolStatus[id] == 0:
+                    #            stop = False
+                    #            break
+                    #if stop == True:
+                    #    print(pid, ": Terminating the while loop..")
+                    #    print(pid, ": nTxns = ", self.nTxns.value)
+                    #    break
+            #if self.txnCnt >= perTxnLimit and len(list(self.blockchain.mempool.keys())) == 0:
+            if self.nTxns.value >= txnLimit + self.nNodes:
+                print(pid, ": terminate")
+                break
             self.broadcastTxns()
             #print(pid, ": broadbast end")
             # process received transactions from queue
@@ -465,14 +478,20 @@ class BitCoinNode:
             #print(pid, ": processBlks end")
             if self.blockchain.mempool:
                 print(pid, ": mempool is nonempty!")
+                #with self.mempoolStatus.get_lock():
+                #        self.mempoolStatus[self.arrId] = 0
                 # start mining for a block
                 (status, newBlk) = self.proofOfWork()
                 # broadbast block to all other nodes
                 if status == True:
                     self.broadcastBlock(newBlk)
-                with self.mempoolStatus.get_lock():
-                    self.mempoolStatus[self.arrId] = 0
+                #with self.mempoolStatus.get_lock():
+                #    if self.blockchain.mempool:
+                #        self.mempoolStatus[self.arrId] = 0
+                #    else:
+                #        self.mempoolStatus[self.arrId] = 0
             else:
+                pass
                 #print(pid, ": mempool empty!")
-                with self.mempoolStatus.get_lock():
-                    self.mempoolStatus[self.arrId] = 1
+                #with self.mempoolStatus.get_lock():
+                #    self.mempoolStatus[self.arrId] = 1
