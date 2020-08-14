@@ -13,6 +13,9 @@ genesisTxnAmount = 1000
 candidates = ["Apple", "Mango", "Banana", "Orange"]
 contractFees = 1
 txnLimit = 10
+nNodes = 10
+# noncesize 8 bytes = 32 bits (in hex)
+nonceSize = 8
 
 class BlockStatus(IntEnum):
     VALID = auto()

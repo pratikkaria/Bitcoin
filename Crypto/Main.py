@@ -29,7 +29,7 @@ def generateCoinBaseTransaction(recvList: List[Tuple[str, int]]) -> Transaction:
     newTxn = Transaction([txnInput], txnOutputs, constants.lockTime)
     return newTxn
 
-nNodes = 3
+nNodes = constants.nNodes
 pubKeys: List[List[str]] = []
 privateKeys: List[List[str]] = []
 for i in range(0, nNodes):

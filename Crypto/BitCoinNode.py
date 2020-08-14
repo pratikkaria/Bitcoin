@@ -8,7 +8,7 @@ import ScriptEngine as ScrEng
 from ScriptEngine import comparePubKeyAndScript
 from MerkleTree import MerkleTree
 import binascii
-from constants import BlockStatus, coinbase, Threshold, lockTime, votingFee, genesisTxnAmount, txnLimit
+from constants import BlockStatus, coinbase, Threshold, lockTime, votingFee, genesisTxnAmount, txnLimit, nonceSize
 import utils
 import os
 
@@ -309,7 +309,8 @@ class BitCoinNode:
         txnList.insert(0, coinBaseTxn)
         newMerkleTree = MerkleTree()
         newMerkleTree.createMerkleTree(txnList)
-        nonce = random.randint(0, 2147483647)
+        #nonce = random.randint(0, 2147483647)
+        nonce = random.randint(0, 2**(nonceSize * 4)-1)
         blkHeader = BlockHeader(self.blockchain.longest, str(nonce), newMerkleTree.mrkl_root, len(txnList))
         newBlk: Block = Block(txnList, blkHeader, newMerkleTree.fullTree)
         return newBlk
@@ -321,7 +322,8 @@ class BitCoinNode:
             #print(pid, ": coinBaseTxn Hash = ", txn.getHash())
         newMerkleTree = MerkleTree()
         newMerkleTree.createMerkleTree(txnList)
-        nonce = random.randint(0, 2147483647)
+        #nonce = random.randint(0, 2147483647)
+        nonce = random.randint(0, 2**(nonceSize * 4)-1)
         #print("nonce: ", nonce)
         #print("longest: ", self.blockchain.longest)
         blkHeader = BlockHeader(self.blockchain.longest, str(nonce), newMerkleTree.mrkl_root, len(txnList))
@@ -339,7 +341,8 @@ class BitCoinNode:
             txnList.append(txn)
         newMerkleTree = MerkleTree()
         newMerkleTree.createMerkleTree(txnList)
-        nonce = random.randint(0, 2147483647)
+        #nonce = random.randint(0, 2147483647)
+        nonce = random.randint(0, 2**(nonceSize * 4)-1)
         blkHeader = BlockHeader(self.blockchain.longest, str(nonce), newMerkleTree.mrkl_root, len(txnList))
         block: Block = Block(txnList, blkHeader, newMerkleTree.fullTree)
         (result, status) = self.blockchain.insert(block, self.pubKeys[0])
@@ -375,7 +378,7 @@ class BitCoinNode:
                     print("Terminated")
                     flag = True
                     break
-                nonce = random.randint(0, 2147483647)
+                nonce = random.randint(0, 2**(nonceSize * 4)-1)
                 newBlk.blockHeader.nonce = str(nonce)
                 newBlk.reCalculateHash()
                 # Keep processing the newly arrived blocks
