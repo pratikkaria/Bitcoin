@@ -1,0 +1,32 @@
+31061 : Creating a genesisBlock..
+31061 : Inserting genesis block..
+31061 : new block inserted successfully!
+31061 : Creating a genesisBlock..
+31061 : Inserting genesis block..
+31061 : new block inserted successfully!
+31061 : Creating a genesisBlock..
+31061 : Inserting genesis block..
+31061 : new block inserted successfully!
+31061 : Creating a genesisBlock..
+31061 : Inserting genesis block..
+31061 : new block inserted successfully!
+31061 : Creating a genesisBlock..
+31061 : Trying to insert a new block..
+31061 : same merkeltree hash!
+My Vote:  Apple
+31089 : prevAmount =  1000
+Done
+My Vote:  Orange
+31088 : prevAmount =  1000
+Done
+Initiator : 31091
+Initiator Node List: 3
+3
+Here: Apple
+Here: Orange
+Breaked
+My Vote:  Apple
+31090 : prevAmount =  1000
+Done
+Initiator : 31087
+Initiator Node List: 3

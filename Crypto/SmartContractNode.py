@@ -32,8 +32,9 @@ class SmartContractNode:
             self.vote: str = ""
             self.hasVoted: bool = False
             self.candidates: List[str] = []
+            self.initiator: List[SmartContractNode] = []
         elif type=="initiator":
-            self.votes: Dict[str, int] = {}
+            self.votes: List[str] = []
             self.currVoteCount: int = 0
             self.peopleVoted: List[str] = []
             self.candidates: List[str] = votingOptions
@@ -45,11 +46,10 @@ class SmartContractNode:
         if self.currVoteCount==(self.nNodes-1):
             print("Voting Complete")
             maxVotes: int = 0
-            winner: str = ""
-            for key,value in self.votes.items():
-                if value>maxVotes:
-                    maxVotes= value
-                    winner = key
+            winner: str = max(set(self.votes), key = self.votes.count)
+            for i in self.votes:
+                if i==winner:
+                    maxVotes+=1
 
             print("Winner of Voting is : " + str(winner) + " with a votecount of : "+str(maxVotes))
             return True
@@ -63,6 +63,7 @@ class SmartContractNode:
         myVote: str = self.candidates[toVote]
         self.hasVoted = True
         self.vote = myVote
+        print("My Vote: ",self.vote)
 
 
     def getDetailsForTxn(self):
@@ -122,9 +123,15 @@ class SmartContractNode:
             blockNodeList: List[BitCoinNode] = []
             for node in self.nodeList:
                 blockNodeList.append(node.nodeObject)
-            self.nodeObject.broadcastAndRunTillSettled(newTxn, blockNodeList)
+            # self.nodeObject.broadcastAndRunTillSettled(newTxn, blockNodeList)
+
+            # print("Balance is " + str(self.nodeObject.blockchain.currentBalance))
+            # print("All node Balance")
+            # for i in blockNodeList:
+            #     print(i.blockchain.currentBalance)
+            self.initiator[0].messages.put(self.vote)
             print("Done")
-            print("Balance is " + str(self.nodeObject.blockchain.currentBalance))
+            return;
         elif self.type=="initiator":
             pid = os.getpid()
             print("Initiator : " + str(pid))
@@ -138,6 +145,15 @@ class SmartContractNode:
                         voter.messages.put(msg)
                     completedSending = 1
                 else:
-                    if self.messages.empty():
-                        continue
-                    break
+                    if self.messages.qsize()==(self.nNodes-1):
+                            while not self.messages.empty():
+                                self.votes.append(self.messages.get_nowait())
+                            maxVotes: int = 0
+                            print(self.votes)
+                            winner: str = max(set(self.votes), key = self.votes.count)
+                            for i in self.votes:
+                                if i==winner:
+                                    maxVotes+=1
+
+                            print("Winner of Voting is : " + str(winner) + " with a votecount of : "+str(maxVotes))
+                            break;

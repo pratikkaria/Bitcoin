@@ -17,7 +17,7 @@ def createCoinBase(recvList: List[Tuple[str, int]])->Transaction:
     return newTxn
 
 
-nNodes = 10
+nNodes = 4
 voters: List[SmartContractNode] = []
 nodeDict = {}
 for i in range(0,nNodes-1):
@@ -27,8 +27,11 @@ for i in range(0,nNodes-1):
 initiator: SmartContractNode = SmartContractNode("initiator", nNodes, constants.candidates)
 voters.append(initiator)
 initiator.nodeList = voters[:-1]
+
 for i in range(0, nNodes-1):
     voters[i].nodeList = voters
+    voters[i].initiator.append(initiator)
+
 coinBaseTxns: List[Transaction] = []
 for node in voters:
     coinBaseTxn = createCoinBase([(node.publicKey, constants.genesisTxnAmount)])
@@ -38,20 +41,20 @@ coinBaseTxns.append(createCoinBase([(initiator.publicKey, constants.genesisTxnAm
 
 for node in voters:
     node.nodeObject.addGenesisBlock(coinBaseTxns)
-
 initiator.nodeObject.addGenesisBlock(coinBaseTxns)
+
 procList = []
 proc = Process(target = initiator.startContract)
 procList.append(proc)
 proc.start()
-for nodes in voters:
+for nodes in voters[:-1]:
     proc = Process(target = nodes.startContract)
     procList.append(proc)
     proc.start()
 
 for proc in procList:
     proc.join()
-    
+
 # voters: List[Voter] = []
 # for i in range(0,nNodes-1):
 #     voters.append(Voter(nNodes))

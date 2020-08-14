@@ -338,6 +338,7 @@ class BitCoinNode:
         newBlk: Block
         flag = False
         while restart == True:
+            print(pid,":mempool Size: ",len(list(self.blockchain.mempool.keys())))
             if len(list(self.blockchain.mempool.keys())) == 0:
                 flag = True
                 break
@@ -346,7 +347,7 @@ class BitCoinNode:
             newBlk = self.createBlock()
             strRandom = random.getrandbits(128)
             strRandom = hex(strRandom)
-            tmpRandom = random.randrange(1, 15, 3)
+            tmpRandom = random.randrange(1, 6, 3)
             strRandom = "0"*tmpRandom + strRandom[tmpRandom:]
             #for i in range(tmpRandom):
             #    strRandom[i] = '0'
@@ -354,6 +355,11 @@ class BitCoinNode:
 
             while (newBlk.hash >= self.target):
                 print(pid, ": finding nonce..")
+                print("Inside pow",len(list(self.blockchain.mempool.keys())))
+                if len(list(self.blockchain.mempool.keys())) == 0:
+                    print("Terminated")
+                    flag = True
+                    break
                 nonce = random.randint(0, 2147483647)
                 newBlk.blockHeader.nonce = str(nonce)
                 newBlk.reCalculateHash()
