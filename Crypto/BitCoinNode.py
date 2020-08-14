@@ -121,8 +121,8 @@ class BitCoinNode:
                 emptyExcptn = True
                 pass
         # give an opportunity to broadcast generated transactions
-        print(pid, ": giving a chance to broadcastTxns..")
-        self.broadcastTxns()
+        # print(pid, ": giving a chance to broadcastTxns..")
+        # self.broadcastTxns()
 
     def getSendList(self) -> Tuple[bool, str, int, str, int]:
         pid = os.getpid()
@@ -375,9 +375,9 @@ class BitCoinNode:
         self.broadcastTxn(txn, nodesList)
         nVotingNodes = len(nodesList) - 1
         while(True):
-            if (self.blockchain.currentBalance <= genesisTxnAmount or self.blockchain.currentBalance >= nVotingNodes * votingFee):
+            if (self.blockchain.currentBalance < genesisTxnAmount or self.blockchain.currentBalance >= nVotingNodes * votingFee):
                 break
-            self.broadcastTxns()
+            # self.broadcastTxns()
             self.processTxns()
             self.processBlks()
             if self.blockchain.mempool:

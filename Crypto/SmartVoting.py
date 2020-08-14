@@ -51,6 +51,7 @@ for nodes in voters:
 
 for proc in procList:
     proc.join()
+    
 # voters: List[Voter] = []
 # for i in range(0,nNodes-1):
 #     voters.append(Voter(nNodes))
