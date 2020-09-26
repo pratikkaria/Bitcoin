@@ -12,7 +12,6 @@ from constants import BlockStatus, coinbase, Threshold, lockTime
 import utils
 import os
 from BitCoinNode import BitCoinNode
-from SmartContractMessages import VoterMessage, InitiatorMessage
 import constants
 
 
@@ -28,11 +27,11 @@ class SmartContractNode:
         self.nodeObject: BitCoinNode = BitCoinNode(pubKeyStr, privateKeyStr, self.nNodes)
         self.messages: Queue = Queue()
         self.nodeList: List[SmartContractNode] = []
+        self.initiator: List[SmartContractNode] = []
         if type=="voter":
             self.vote: str = ""
             self.hasVoted: bool = False
             self.candidates: List[str] = []
-            self.initiator: List[SmartContractNode] = []
         elif type=="initiator":
             self.votes: List[str] = []
             self.currVoteCount: int = 0
@@ -125,10 +124,6 @@ class SmartContractNode:
                 blockNodeList.append(node.nodeObject)
             self.nodeObject.broadcastAndRunTillSettled(newTxn, blockNodeList)
 
-            # print("Balance is " + str(self.nodeObject.blockchain.currentBalance))
-            # print("All node Balance")
-            # for i in blockNodeList:
-            #     print(i.blockchain.currentBalance)
             self.initiator[0].messages.put(self.vote)
             print("Done")
         elif self.type=="initiator":
@@ -141,7 +136,8 @@ class SmartContractNode:
                     msg: List[str] = self.candidates
                     msg.append(self.publicKey)
                     for voter in self.nodeList:
-                        voter.messages.put(msg)
+                        if voter.type=="voter":
+                            voter.messages.put(msg)
                     completedSending = 1
                 else:
                     while not self.messages.empty():

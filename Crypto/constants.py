@@ -12,9 +12,11 @@ votingFee = 1
 genesisTxnAmount = 1000
 candidates = ["Apple", "Mango", "Banana", "Orange"]
 contractFees = 1
-txnLimit = 10
+txnLimit = 1000000
 perTxnLimit = 3
-nNodes = 10
+nNodes = 20
+smartContractNodes = 15
+compulsorySmartContract = [1,3,4]
 # noncesize 8 bytes = 32 bits (in hex)
 nonceSize = 8
 
